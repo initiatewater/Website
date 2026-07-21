@@ -1,0 +1,109 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+---
+
+<BaseLayout
+  title="Contact Us"
+  description="Get in touch with the Initiate team."
+  formPage={true}
+>
+  <div class="page-grid items-start pt-16 pb-16">
+
+    <!-- COLONNE GAUCHE : formulaire -->
+    <div class="flex flex-col pr-0 md:pr-16">
+
+      <h1 class="text-i-navy mb-10">Contact us</h1>
+
+      <!--
+        id="contact-form" : ciblé par le JS ci-dessous
+        novalidate : on gère la validation manuellement pour contrôler les messages
+      -->
+      <form id="contact-form" class="flex flex-col gap-4 max-w-md" novalidate>
+
+        <input type="text"   name="firstname" placeholder="First name"    class="input-field" required autocomplete="given-name" />
+        <input type="text"   name="lastname"  placeholder="Last name"     class="input-field" required autocomplete="family-name" />
+        <input type="email"  name="email"     placeholder="Email address" class="input-field" required autocomplete="email" />
+        <textarea name="message" placeholder="Your message" rows="8" class="input-field" required></textarea>
+
+        <!--
+          Bouton : change d'état selon la progression (idle → sending → sent / error)
+          aria-live : annonce le changement aux lecteurs d'écran
+        -->
+        <button type="submit" id="contact-submit" class="btn-outline self-start mt-2">
+          Send message
+        </button>
+
+        <!-- Feedback : caché par défaut, affiché par JS -->
+        <p id="contact-feedback" class="text-sm mt-1 hidden" aria-live="polite"></p>
+
+      </form>
+    </div>
+
+    <!-- COLONNE DROITE : photo (desktop) -->
+    <div class="hidden md:block h-full min-h-[500px] overflow-hidden rounded-lg">
+      <img
+        src="/images/contact-photo.jpg"
+        alt="Initiate team"
+        class="w-full h-full object-cover object-center"
+        onerror="this.parentElement.style.background='#A8D9D5'; this.style.display='none'"
+      />
+    </div>
+
+  </div>
+</BaseLayout>
+
+<script is:inline>
+  (function () {
+    var form     = document.getElementById('contact-form')
+    var btn      = document.getElementById('contact-submit')
+    var feedback = document.getElementById('contact-feedback')
+
+    if (!form) return
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault()
+
+      // Validation basique
+      var firstname = form.firstname.value.trim()
+      var email     = form.email.value.trim()
+      var message   = form.message.value.trim()
+
+      if (!firstname || !email || !message) {
+        feedback.textContent = 'Veuillez remplir tous les champs obligatoires.'
+        feedback.className   = 'text-sm mt-1 text-red-500'
+        return
+      }
+
+      // État "envoi en cours"
+      btn.disabled         = true
+      btn.textContent      = 'Sending…'
+      feedback.className   = 'text-sm mt-1 hidden'
+
+      try {
+        var res = await fetch('/api/contact', {
+          method: 'POST',
+          body:   new FormData(form),
+        })
+
+        var json = await res.json()
+
+        if (res.ok && json.success) {
+          // Succès
+          feedback.textContent = 'Message envoyé ! Nous vous répondrons sous 48h.'
+          feedback.className   = 'text-sm mt-1 text-i-teal'
+          form.reset()
+          btn.textContent = 'Send message'
+        } else {
+          throw new Error(json.error || 'Erreur inconnue')
+        }
+
+      } catch (err) {
+        feedback.textContent = 'Une erreur est survenue. Veuillez réessayer.'
+        feedback.className   = 'text-sm mt-1 text-red-500'
+        btn.textContent      = 'Send message'
+      } finally {
+        btn.disabled = false
+      }
+    })
+  })()
+</script>

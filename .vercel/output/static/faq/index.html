@@ -1,0 +1,184 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><!-- Titre onglet navigateur : "About Us | Initiate", "FAQ | Initiate"… --><title>FAQ | Initiate</title><!-- Résumé pour les moteurs de recherche (160 caractères max recommandés) --><meta name="description" content="Frequently asked questions about the Initiate program."><!--
+    Préchargement de Suze-Regular : le navigateur charge la police en priorité,
+    ce qui réduit le délai avant affichage du bon rendu typographique.
+    crossorigin est obligatoire pour les polices (contrainte CORS des navigateurs).
+  --><link rel="preload" href="/fonts/Suze-Regular.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="/_astro/BaseLayout.8Sj1QE-L.css"><style>#faq-scroll[data-astro-cid-vagwt47q]::-webkit-scrollbar{display:none}
+</style></head><!--
+  class:list : syntaxe Astro pour les classes conditionnelles.
+  Si formPage=true : ajoute bg-i-cream (#F5F7FA).
+  Sinon : fond blanc par défaut (défini dans global.css body).
+--><body data-nav-hide="true"><!-- Header : commun à toutes les pages, géré dans Header.astro --><!--
+  sticky top-0    : la navbar reste visible en haut même en scrollant
+  transition-transform duration-300 : animation fluide pour le hide/show
+  Le JS ci-dessous ajoute .nav-hidden (translateY -100%) quand on scrolle
+  vers le bas, et le retire quand on remonte.
+--><header class="sticky top-0 z-50 bg-white flex items-center justify-between px-12 py-4" id="main-header" style="transition: transform 0.35s ease;"><!-- LOGO --><a href="/" class="flex-shrink-0" aria-label="Initiate – Retour à l'accueil"><img src="/public/images/podcasts/INITIATE_logo_RVB.png" alt="Initiate" class="h-12 w-auto" onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='flex';"><span id="logo-fallback" class="hidden items-center gap-2 text-i-navy font-bold text-lg" aria-hidden="true"><svg width="32" height="32" viewBox="0 0 36 36" fill="none"><circle cx="18" cy="6" r="4" fill="#2BA8A4"></circle><circle cx="28" cy="12" r="3.5" fill="#2BA8A4" opacity=".8"></circle><circle cx="30" cy="23" r="3" fill="#2BA8A4" opacity=".6"></circle><circle cx="22" cy="30" r="2.5" fill="#2BA8A4" opacity=".5"></circle><circle cx="12" cy="30" r="2" fill="#9DC55A" opacity=".7"></circle><circle cx="6" cy="23" r="2.5" fill="#2BA8A4" opacity=".4"></circle><circle cx="8" cy="12" r="3" fill="#2BA8A4" opacity=".6"></circle></svg>initiate</span></a><!-- NAV DESKTOP --><nav class="hidden md:flex items-center" aria-label="Navigation principale"><ul class="flex items-center list-none m-0 p-0 gap-0"><li class="relative"><a href="/" class="px-3 py-1 text-sm transition-colors duration-200 text-i-navy hover:text-i-teal">Home</a></li><li aria-hidden="true"><span class="text-gray-300 text-xs select-none px-0.5">·</span></li><li class="relative"><div class="dropdown-wrapper"><button class="dropdown-btn flex items-center gap-1 px-3 py-1 text-sm transition-colors duration-200 bg-transparent border-0 cursor-pointer text-i-navy hover:text-i-teal" aria-haspopup="true" aria-expanded="false">Content<!-- Flèche bas : pivote à 180° quand ouvert --><svg class="dropdown-chevron transition-transform duration-200" width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></button><!--
+                  Sous-menu : caché par défaut, révélé par JS au clic.
+                  absolute top-full : juste sous le bouton parent.
+                  min-w-[160px] : largeur minimale pour ne pas tronquer les labels.
+                --><ul class="dropdown-menu hidden absolute top-full left-0 mt-1 min-w-[160px] bg-white border border-gray-100 shadow-md rounded-md py-1 list-none m-0"><li><a href="/podcasts" class="block px-4 py-2 text-sm transition-colors duration-150 text-i-navy hover:text-i-teal hover:bg-gray-50">Podcasts</a></li><li><a href="/publications" class="block px-4 py-2 text-sm transition-colors duration-150 text-i-navy hover:text-i-teal hover:bg-gray-50">Publications</a></li></ul></div></li><li aria-hidden="true"><span class="text-gray-300 text-xs select-none px-0.5">·</span></li><li class="relative"><a href="/network" class="px-3 py-1 text-sm transition-colors duration-200 text-i-navy hover:text-i-teal">Network</a></li><li aria-hidden="true"><span class="text-gray-300 text-xs select-none px-0.5">·</span></li><li class="relative"><a href="/apply" class="px-3 py-1 text-sm transition-colors duration-200 text-i-navy hover:text-i-teal">Apply</a></li><li aria-hidden="true"><span class="text-gray-300 text-xs select-none px-0.5">·</span></li><li class="relative"><a href="/contact" class="px-3 py-1 text-sm transition-colors duration-200 text-i-navy hover:text-i-teal">Contact us</a></li><li aria-hidden="true"><span class="text-gray-300 text-xs select-none px-0.5">·</span></li><li class="relative"><a href="/faq" aria-current="page" class="px-3 py-1 text-sm transition-colors duration-200 font-bold text-i-navy border-b-2 border-i-navy pb-0.5">FAQ</a></li></ul></nav><!-- BOUTON BURGER (MOBILE) --><button id="burger-btn" class="md:hidden flex flex-col gap-1.5 p-2 -mr-2 bg-transparent border-0 cursor-pointer" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="mobile-nav"><span id="bar1" class="block w-6 h-0.5 bg-i-navy" style="transition: transform 0.3s ease, opacity 0.3s ease;"></span><span id="bar2" class="block w-6 h-0.5 bg-i-navy" style="transition: opacity 0.3s ease;"></span><span id="bar3" class="block w-6 h-0.5 bg-i-navy" style="transition: transform 0.3s ease;"></span></button><!-- MENU MOBILE --><nav id="mobile-nav" class="absolute top-full left-0 right-0 bg-white border-t border-gray-100 shadow-md hidden" aria-label="Navigation mobile"><ul class="list-none m-0 py-3 px-0"><li><a href="/" class="block px-8 py-3 text-base transition-colors duration-150 text-i-navy hover:text-i-teal hover:bg-gray-50">Home</a></li><li><div class="mobile-accordion"><button class="mobile-accordion-btn w-full flex items-center justify-between px-8 py-3 text-base bg-transparent border-0 cursor-pointer transition-colors duration-150 text-i-navy">Content<svg class="mobile-accordion-chevron transition-transform duration-200" width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></button><!--
+                Sous-items mobile : indentés à gauche (pl-12) pour
+                marquer visuellement la hiérarchie sans ligne ou icône.
+              --><ul class="mobile-accordion-menu hidden list-none m-0 p-0 bg-gray-50"><li><a href="/podcasts" class="block pl-12 pr-8 py-2.5 text-sm transition-colors duration-150 text-i-navy hover:text-i-teal">Podcasts</a></li><li><a href="/publications" class="block pl-12 pr-8 py-2.5 text-sm transition-colors duration-150 text-i-navy hover:text-i-teal">Publications</a></li></ul></div></li><li><a href="/network" class="block px-8 py-3 text-base transition-colors duration-150 text-i-navy hover:text-i-teal hover:bg-gray-50">Network</a></li><li><a href="/apply" class="block px-8 py-3 text-base transition-colors duration-150 text-i-navy hover:text-i-teal hover:bg-gray-50">Apply</a></li><li><a href="/contact" class="block px-8 py-3 text-base transition-colors duration-150 text-i-navy hover:text-i-teal hover:bg-gray-50">Contact us</a></li><li><a href="/faq" aria-current="page" class="block px-8 py-3 text-base transition-colors duration-150 font-bold text-i-teal">FAQ</a></li></ul></nav></header><script>
+  (function () {
+
+    /* ── BURGER MOBILE ─────────────────────────────────────── */
+    const btn  = document.getElementById('burger-btn')
+    const nav  = document.getElementById('mobile-nav')
+    const bar1 = document.getElementById('bar1')
+    const bar2 = document.getElementById('bar2')
+    const bar3 = document.getElementById('bar3')
+
+    let burgerOpen = false
+
+    function openBurger() {
+      burgerOpen = true
+      nav.classList.remove('hidden')
+      btn.setAttribute('aria-expanded', 'true')
+      btn.setAttribute('aria-label', 'Fermer le menu')
+      bar1.style.transform = 'translateY(8px) rotate(45deg)'
+      bar2.style.opacity   = '0'
+      bar3.style.transform = 'translateY(-8px) rotate(-45deg)'
+    }
+
+    function closeBurger() {
+      burgerOpen = false
+      nav.classList.add('hidden')
+      btn.setAttribute('aria-expanded', 'false')
+      btn.setAttribute('aria-label', 'Ouvrir le menu')
+      bar1.style.transform = ''
+      bar2.style.opacity   = '1'
+      bar3.style.transform = ''
+    }
+
+    btn && btn.addEventListener('click', function () {
+      burgerOpen ? closeBurger() : openBurger()
+    })
+
+    /* ── DROPDOWN DESKTOP ──────────────────────────────────────
+       Clic sur le bouton "Content" : ouvre/ferme le sous-menu.
+       Clic ailleurs sur la page : ferme tous les dropdowns.
+    ─────────────────────────────────────────────────────────── */
+    document.querySelectorAll('.dropdown-wrapper').forEach(function (wrapper) {
+      const dropBtn  = wrapper.querySelector('.dropdown-btn')
+      const dropMenu = wrapper.querySelector('.dropdown-menu')
+      const chevron  = wrapper.querySelector('.dropdown-chevron')
+
+      dropBtn && dropBtn.addEventListener('click', function (e) {
+        e.stopPropagation() // évite que le clic remonte et referme immédiatement
+
+        const isOpen = !dropMenu.classList.contains('hidden')
+
+        // Ferme tous les autres dropdowns avant d'ouvrir celui-ci
+        closeAllDropdowns()
+
+        if (!isOpen) {
+          dropMenu.classList.remove('hidden')
+          dropBtn.setAttribute('aria-expanded', 'true')
+          chevron && chevron.classList.add('rotate-180')
+        }
+      })
+    })
+
+    // Ferme les dropdowns au clic en dehors
+    document.addEventListener('click', closeAllDropdowns)
+
+    function closeAllDropdowns() {
+      document.querySelectorAll('.dropdown-wrapper').forEach(function (w) {
+        w.querySelector('.dropdown-menu')?.classList.add('hidden')
+        w.querySelector('.dropdown-btn')?.setAttribute('aria-expanded', 'false')
+        w.querySelector('.dropdown-chevron')?.classList.remove('rotate-180')
+      })
+    }
+
+    /* ── ACCORDION MOBILE ──────────────────────────────────────
+       Clic sur "Content" dans le menu burger : déplie les sous-items.
+    ─────────────────────────────────────────────────────────── */
+    document.querySelectorAll('.mobile-accordion').forEach(function (acc) {
+      const accBtn     = acc.querySelector('.mobile-accordion-btn')
+      const accMenu    = acc.querySelector('.mobile-accordion-menu')
+      const accChevron = acc.querySelector('.mobile-accordion-chevron')
+
+      accBtn && accBtn.addEventListener('click', function () {
+        const isOpen = !accMenu.classList.contains('hidden')
+        accMenu.classList.toggle('hidden', isOpen)
+        accChevron && accChevron.classList.toggle('rotate-180', !isOpen)
+      })
+    })
+
+    // Fermeture du burger au clic sur un lien simple du menu mobile
+    nav && nav.querySelectorAll('a').forEach(function (link) {
+      link.addEventListener('click', closeBurger)
+    })
+
+  })();
+
+  /* ── HIDE / SHOW NAVBAR AU SCROLL ─────────────────────────────
+    Activé uniquement si data-nav-hide="true" sur le <body>.
+    Mettre navHide={false} dans BaseLayout pour désactiver par page.
+
+    Timings asymétriques :
+    - Cacher  : 0.35s ease  (plus lent, moins intrusif)
+    - Montrer : 0.18s ease  (plus rapide, réactif)
+
+    Mouse-at-top : réapparition si souris < 20px du bord supérieur (PC).
+  ─────────────────────────────────────────────────────────────── */
+  (function () {
+    const header = document.getElementById('main-header')
+    if (!header) return
+
+    // Lit la variable de contrôle posée par BaseLayout
+    const hideEnabled = document.body.dataset.navHide === 'true'
+    if (!hideEnabled) return
+
+    let lastScroll = 0
+    let isHidden = false
+
+    function hideNav() {
+      if (isHidden) return
+      isHidden = true
+      header.style.transition = 'transform 0.35s ease'
+      header.style.transform = 'translateY(-100%)'
+    }
+
+    function showNav() {
+      if (!isHidden) return
+      isHidden = false
+      header.style.transition = 'transform 0.18s ease'
+      header.style.transform = 'translateY(0)'
+    }
+
+    // Scroll : cache vers le bas, montre vers le haut
+    window.addEventListener('scroll', function () {
+      const current = window.scrollY
+      if (current > lastScroll && current > 80) {
+        hideNav()
+      } else {
+        showNav()
+      }
+      lastScroll = current <= 0 ? 0 : current
+    }, { passive: true })
+
+    // Souris en haut de page → montre la navbar (PC uniquement)
+    document.addEventListener('mousemove', function (e) {
+      if (e.clientY < 20) showNav()
+    })
+  })()
+</script><!--
+    <slot /> : "trou" dans lequel Astro injecte le contenu de chaque page.
+    Tout ce qui est entre <BaseLayout>…</BaseLayout> dans une page
+    se retrouve ici au moment du build.
+  --><main><div class="relative" style="height: calc(100vh - 72px); overflow: hidden;" data-astro-cid-vagwt47q><div class="hidden md:block pointer-events-none" data-astro-cid-vagwt47q><div class="drop-shape" style="width:130px; height:150px; top:8%;  right:6%;" data-astro-cid-vagwt47q></div><div class="drop-shape drop-shape--faint" style="width:100px; height:120px; top:22%; right:20%;" data-astro-cid-vagwt47q></div><div class="drop-shape" style="width:80px;  height:95px;  top:44%; right:3%; opacity:0.2;" data-astro-cid-vagwt47q></div><div class="drop-shape drop-shape--faint" style="width:55px;  height:70px;  top:38%; right:14%;" data-astro-cid-vagwt47q></div><div class="drop-shape" style="width:110px; height:130px; bottom:10%; right:12%; opacity:0.22;" data-astro-cid-vagwt47q></div><div class="drop-shape drop-shape--faint" style="width:70px;  height:85px;  bottom:22%; right:28%;" data-astro-cid-vagwt47q></div></div><div class="relative z-10 h-full flex flex-col px-12 pt-16" data-astro-cid-vagwt47q><h1 class="text-i-navy mb-10 flex-shrink-0" data-astro-cid-vagwt47q>FAQ</h1><div id="faq-scroll" class="flex-1 overflow-y-auto pb-16" style="scrollbar-width: none;" data-astro-cid-vagwt47q><div class="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-10 max-w-4xl" data-astro-cid-vagwt47q><div class="faq-item" data-astro-cid-vagwt47q><h3 class="text-i-navy mb-2" data-astro-cid-vagwt47q>Coucou, tu vas bien ? </h3><p class="text-i-navy opacity-70 text-sm m-0" data-astro-cid-vagwt47q>oui ça vaaaaaa ! </p></div><div class="faq-item" data-astro-cid-vagwt47q><h3 class="text-i-navy mb-2" data-astro-cid-vagwt47q>EOGIVHSFKSHEKRGHSR</h3><p class="text-i-navy opacity-70 text-sm m-0" data-astro-cid-vagwt47q>FIHDSHFKSFDJHhjkhjkfdhfdhgfd</p></div><div class="faq-item" data-astro-cid-vagwt47q><h3 class="text-i-navy mb-2" data-astro-cid-vagwt47q>How are you ?</h3><p class="text-i-navy opacity-70 text-sm m-0" data-astro-cid-vagwt47q>I&#39;m fine, thank you ;))</p></div></div></div></div><div id="faq-gradient" class="pointer-events-none absolute bottom-0 left-0 right-0 z-20" style="height: 120px; background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.95));" data-astro-cid-vagwt47q></div></div></main></body></html><script>
+  (function () {
+    var scroll   = document.getElementById('faq-scroll')
+    var gradient = document.getElementById('faq-gradient')
+    if (!scroll || !gradient) return
+    function updateGradient() {
+      var atBottom = scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - 8
+      gradient.style.opacity = atBottom ? '0' : '1'
+      gradient.style.transition = 'opacity 0.3s ease'
+    }
+    scroll.addEventListener('scroll', updateGradient, { passive: true })
+    updateGradient()
+  })()
+</script>

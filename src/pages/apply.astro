@@ -1,0 +1,188 @@
+---
+/*
+  pages/apply.astro
+  Desktop : titre centré + formulaire centré, fond cream
+  Mobile  : identique, fond cream
+  formPage=true → fond #F5F7FA sur body
+
+  Spécificités vs Contact :
+  - Pas de textarea "message"
+  - Deux zones d'upload : CV + lettre de motivation
+  - Titre "Apply to INITIATE" avec "INITIATE" en gras plus marqué
+  - Mise en page centrée (pas de photo à droite)
+*/
+import BaseLayout from '../layouts/BaseLayout.astro'
+---
+
+<BaseLayout
+  title="Apply"
+  description="Apply to the Initiate PhD freshwater research program."
+  formPage={true}
+>
+
+  <!--
+    Centrage horizontal : max-w-md + mx-auto
+    py-16 : respiration verticale généreuse observée dans la maquette
+    Cette page sort du page-grid standard : pas de colonne visuelle à droite,
+    le formulaire est centré sur toute la largeur.
+  -->
+  <div class="min-h-[calc(100vh-72px)] flex flex-col justify-center px-6 py-16">
+    <div class="w-full max-w-md mx-auto">
+
+      <!-- Titre : "Apply to" regular + "INITIATE" bold uppercase -->
+      <h1 class="text-i-navy text-center mb-10 leading-tight">
+        Apply to<br />
+        <span class="uppercase tracking-wide">Initiate</span>
+      </h1>
+
+      <form action="#" class="flex flex-col gap-4">
+
+        <input
+          type="text"
+          name="firstname"
+          placeholder="First name"
+          class="input-field"
+          autocomplete="given-name"
+        />
+
+        <input
+          type="text"
+          name="lastname"
+          placeholder="Last name"
+          class="input-field"
+          autocomplete="family-name"
+        />
+
+        <input
+          type="email"
+          name="email"
+          placeholder="Email address"
+          class="input-field"
+          autocomplete="email"
+        />
+
+        <!--
+          ZONE UPLOAD CV
+          <label> englobe l'<input type="file"> caché (sr-only).
+          Cliquer n'importe où sur la zone déclenche le sélecteur de fichier.
+          JS ci-dessous : au choix d'un fichier, la zone passe en état --done.
+        -->
+        <label class="upload-zone" id="cv-zone">
+          <!-- Icône document (état initial) -->
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" class="flex-shrink-0" id="cv-icon-default">
+            <rect x="4" y="2" width="12" height="16" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="7" y1="7"  x2="13" y2="7"  stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            <line x1="7" y1="10" x2="13" y2="10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            <line x1="7" y1="13" x2="10" y2="13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+          <!-- Icône check (état done : caché par défaut) -->
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" class="flex-shrink-0 hidden" id="cv-icon-done">
+            <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/>
+            <polyline points="6.5,10.5 9,13 13.5,8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span id="cv-label">Add your CV here</span>
+          <input
+            type="file"
+            name="cv"
+            accept=".pdf,.doc,.docx"
+            class="sr-only"
+            id="cv-input"
+          />
+        </label>
+
+        <!--
+          ZONE UPLOAD LETTRE
+          Même logique que le CV. Deux zones séparées pour deux fichiers distincts.
+        -->
+        <label class="upload-zone" id="letter-zone">
+          <!-- Icône check (état initial : même icône document) -->
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" class="flex-shrink-0" id="letter-icon-default">
+            <rect x="4" y="2" width="12" height="16" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="7" y1="7"  x2="13" y2="7"  stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            <line x1="7" y1="10" x2="13" y2="10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            <line x1="7" y1="13" x2="10" y2="13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+          <!-- Icône check (état done : caché par défaut) -->
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" class="flex-shrink-0 hidden" id="letter-icon-done">
+            <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/>
+            <polyline points="6.5,10.5 9,13 13.5,8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span id="letter-label">Add your cover letter here</span>
+          <input
+            type="file"
+            name="letter"
+            accept=".pdf,.doc,.docx"
+            class="sr-only"
+            id="letter-input"
+          />
+        </label>
+
+        <!--
+          Bouton submit centré, comme dans la maquette mobile.
+          w-full sur mobile, auto sur desktop.
+        -->
+        <button
+          type="submit"
+          class="btn-outline justify-center mt-4 md:self-center md:px-16"
+        >
+          Candidate
+        </button>
+
+      </form>
+    </div>
+  </div>
+
+</BaseLayout>
+
+<script is:inline>
+  (function () {
+
+    // Formate un poids en octets → "234 KB", "1.2 MB", etc.
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B'
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB'
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+    }
+
+    function setupUpload(inputId, zoneId, labelId, iconDefaultId, iconDoneId) {
+      var input   = document.getElementById(inputId)
+      var zone    = document.getElementById(zoneId)
+      var label   = document.getElementById(labelId)
+      var iconDef = document.getElementById(iconDefaultId)
+      var iconDon = document.getElementById(iconDoneId)
+
+      if (!input || !zone || !label) return
+
+      input.addEventListener('change', function () {
+        var file = input.files[0]
+        if (!file) return
+
+        // Nom tronqué + poids du fichier
+        var name = file.name.length > 24
+          ? file.name.substring(0, 21) + '…'
+          : file.name
+        var size = formatSize(file.size)
+
+        // Affiche : "Mon CV.pdf  ·  234 KB"
+        label.textContent = name + '  ·  ' + size
+
+        // Passage en état "done" : bordure teal + texte teal
+        zone.classList.add('upload-zone--done')
+
+        // Swap icônes : document → check avec animation
+        if (iconDef) iconDef.classList.add('hidden')
+        if (iconDon) {
+          iconDon.classList.remove('hidden')
+          // Relance l'animation à chaque nouveau fichier
+          iconDon.classList.remove('icon-check-animate')
+          void iconDon.offsetWidth // force reflow pour reset l'animation
+          iconDon.classList.add('icon-check-animate')
+        }
+      })
+    }
+
+    setupUpload('cv-input',     'cv-zone',     'cv-label',     'cv-icon-default',     'cv-icon-done')
+    setupUpload('letter-input', 'letter-zone', 'letter-label', 'letter-icon-default', 'letter-icon-done')
+
+  })()
+</script>

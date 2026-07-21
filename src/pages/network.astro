@@ -1,0 +1,861 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import { sanityClient, queries } from '../lib/sanity'
+
+// Fetch depuis Sanity au build time
+// university->name dereference la référence automatiquement
+const doctorants = await sanityClient.fetch(queries.allDoctorants).catch(() => [])
+---
+
+<BaseLayout title="Network" description="Explore the Initiate PhD candidate network.">
+
+  <!-- Données passées au script client via JSON embarqué dans le DOM -->
+  <!-- D3 chargé via CDN : nécessaire pour is:inline (pas d'import possible) -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7" is:inline></script>
+
+  <!--
+    Layout réseau : différent du page-grid standard.
+    Desktop : panneau gauche fixe (~38%) + zone chart droite (~62%)
+    Mobile  : empilement vertical
+  -->
+  <div class="flex flex-col md:flex-row min-h-[calc(100vh-72px)]">
+
+    <!-- ── PANNEAU GAUCHE : filtres + liste / détail université / détail doctorant ─ -->
+    <aside class="md:w-[38%] md:border-r border-gray-100 px-8 py-10 md:overflow-y-auto">
+
+      <h2 class="text-i-navy mb-6 text-2xl font-bold">Filter your research</h2>
+
+      <!--
+        Dropdown "Trier par" : un seul sélecteur remplace les 4 boutons.
+        Les options Compétences et Langage sont désactivées (disabled)
+        jusqu'à leur implémentation en Phase 2.
+      -->
+      <div class="flex items-center gap-3 mb-6">
+        <span class="text-sm font-medium text-i-navy whitespace-nowrap">Trier par</span>
+
+        <div class="relative" id="sort-wrapper">
+          <button
+            id="sort-btn"
+            class="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-i-navy hover:border-i-teal transition-colors duration-150 cursor-pointer"
+            aria-haspopup="listbox"
+            aria-expanded="false"
+          >
+            <span id="sort-label">Université</span>
+            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" id="sort-chevron" style="transition: transform 0.2s ease;">
+              <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+
+          <!--
+            Liste déroulante : absolute sous le bouton.
+            Chaque option a data-criterion pour le JS,
+            et data-label pour mettre à jour le texte du bouton.
+            Les options disabled sont grises et non cliquables.
+          -->
+          <ul
+            id="sort-menu"
+            role="listbox"
+            class="hidden absolute top-full left-0 mt-1 min-w-[180px] bg-white border border-gray-100 shadow-md rounded-md py-1 list-none m-0 z-20"
+          >
+            <li
+              role="option"
+              data-criterion="university"
+              data-label="Université"
+              class="sort-option px-4 py-2.5 text-sm text-i-navy hover:bg-gray-50 hover:text-i-teal cursor-pointer transition-colors duration-100"
+            >
+              Université
+            </li>
+            <li
+              role="option"
+              data-criterion="cohort"
+              data-label="Cohorte"
+              class="sort-option px-4 py-2.5 text-sm text-i-navy hover:bg-gray-50 hover:text-i-teal cursor-pointer transition-colors duration-100"
+            >
+              Cohorte
+            </li>
+            <li
+              role="option"
+              aria-disabled="true"
+              class="px-4 py-2.5 text-sm text-gray-300 cursor-not-allowed"
+              title="Bientôt disponible"
+            >
+              Compétences
+            </li>
+            <li
+              role="option"
+              aria-disabled="true"
+              class="px-4 py-2.5 text-sm text-gray-300 cursor-not-allowed"
+              title="Bientôt disponible"
+            >
+              Langage
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Barre de recherche -->
+      <div class="search-bar mb-8 max-w-xs">
+        <input type="text" placeholder="Search" id="search-input" />
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="text-gray-400 flex-shrink-0">
+          <circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+
+      <!--
+        Zone dynamique : contient tour à tour
+        - la liste résumée (vue d'ensemble)
+        - la fiche d'une université (après clic sur une bulle)
+        - la fiche d'un doctorant (après clic sur une bulle "doctorant")
+        Entièrement remplie/gérée par JS.
+      -->
+      <div id="network-list">
+        <!-- Rempli dynamiquement par JS -->
+      </div>
+    </aside>
+
+    <!-- ── PANNEAU DROIT : bubble chart ─────────────────────────────────── -->
+    <main class="flex-1 px-8 py-10 flex flex-col">
+
+      <!-- Titre dynamique : vue d'ensemble, ou breadcrumb + bouton retour en détail -->
+      <h2 id="chart-title" class="text-i-navy mb-1 text-2xl font-bold">
+        Universités représentées
+      </h2>
+      <div class="w-16 h-0.5 bg-i-navy mb-6"></div>
+
+      <!--
+        Conteneur SVG : height fixée en CSS, width 100% (responsive).
+        Le SVG se redimensionne via JS au resize de la fenêtre.
+      -->
+      <div id="chart-container" class="flex-1 min-h-[400px] md:min-h-[520px]">
+        <svg id="bubble-svg" class="w-full h-full"></svg>
+      </div>
+    </main>
+  </div>
+
+</BaseLayout>
+
+
+<!-- ── STYLES ──────────────────────────────────────────────────────────────── -->
+<style>
+  #network-list table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Suze', Georgia, serif;
+    font-size: 0.875rem;
+    color: #0D3B5E;
+  }
+
+  #network-list th {
+    text-align: left;
+    padding: 0.5rem 0 0.9rem 0;  /* padding-bottom généreux : espace visuel sous les titres */
+    font-weight: 700;
+    color: #2BA8A4;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  #network-list td {
+    padding: 0.45rem 0;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  #network-list td:last-child {
+    text-align: right;
+    font-weight: 600;
+  }
+
+  /* Ligne surlignée au hover */
+  #network-list tr:hover td {
+    background-color: #f0fdfc;
+  }
+
+  /* ── Titre du chart : accueille un bouton retour + breadcrumb ─────────── */
+  #chart-title {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .chart-back-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9999px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    color: #0D3B5E;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .chart-back-btn:hover {
+    border-color: #2BA8A4;
+    background: #f0fdfc;
+  }
+
+  /* ── Bouton retour dans le panneau gauche ──────────────────────────────── */
+  .panel-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: none;
+    border: none;
+    padding: 0;
+    margin-bottom: 1.25rem;
+    font-family: 'Suze', Georgia, serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #2BA8A4;
+    cursor: pointer;
+  }
+  .panel-back-btn:hover {
+    text-decoration: underline;
+  }
+
+  .panel-title {
+    font-family: 'Suze', Georgia, serif;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #0D3B5E;
+    margin: 0 0 0.25rem 0;
+  }
+
+  .panel-subtitle {
+    font-family: 'Suze', Georgia, serif;
+    font-size: 0.95rem;
+    color: #2BA8A4;
+    margin: 0 0 1.25rem 0;
+  }
+
+  /* Liste des doctorants d'une université, dans le panneau gauche */
+  .doctorant-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .doctorant-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.6rem 0.25rem;
+    border-bottom: 1px solid #f3f4f6;
+    font-family: 'Suze', Georgia, serif;
+    font-size: 0.9rem;
+    color: #0D3B5E;
+    cursor: pointer;
+    transition: background 0.1s ease;
+  }
+  .doctorant-item:hover {
+    background: #f0fdfc;
+  }
+  .doctorant-dot {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 9999px;
+    flex-shrink: 0;
+  }
+
+  /* Fiche d'un doctorant */
+  .doctorant-card {
+    display: flex;
+    flex-direction: column;
+  }
+  .doctorant-photo {
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 9999px;
+    object-fit: cover;
+    margin-bottom: 0.9rem;
+  }
+  .doctorant-photo--placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #A8D9D5;
+    color: #0D3B5E;
+    font-family: 'Suze', Georgia, serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+  }
+  .doctorant-meta {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.3rem 0.75rem;
+    font-family: 'Suze', Georgia, serif;
+    font-size: 0.85rem;
+    color: #0D3B5E;
+    margin: 0.75rem 0;
+  }
+  .doctorant-meta dt {
+    font-weight: 700;
+    color: #2BA8A4;
+  }
+  .doctorant-meta dd {
+    margin: 0;
+  }
+  .doctorant-meta a {
+    color: #2BA8A4;
+    text-decoration: underline;
+  }
+  .doctorant-bio {
+    font-family: 'Suze', Georgia, serif;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: #0D3B5E;
+    margin-top: 0.5rem;
+  }
+</style>
+
+
+<!-- ── SCRIPT D3 ──────────────────────────────────────────────────────────── -->
+<script define:vars={{ doctorants }} is:inline>
+  // @ts-nocheck
+  /* Désactive la vérification TypeScript pour ce bloc.
+     D3 n'a pas de types embarqués, et les callbacks de simulation
+     génèrent des erreurs de types implicites inoffensives. */
+
+  // ── CONSTANTES ──────────────────────────────────────────────────────────
+  const MIN_R   = 28   // rayon minimum (px) : bulle "université" la plus petite
+  const MAX_R   = 88   // rayon maximum (px) : bulle "université" la plus grande
+  const GAP     = 6    // espace minimal (px) entre deux bulles
+  const FONT    = 'Suze, Georgia, serif'
+  const TEXT_COLOR = '#0D3B5E'
+
+  // Rayon des bulles "doctorant" affichées à l'intérieur d'une université
+  const DOC_MIN_R = 26
+  const DOC_MAX_R = 60
+
+  /*
+    Palette de 6 couleurs cyclées dans l'ordre des bulles.
+    L'ordre d'attribution dépend de l'ordre alphabétique des entités
+    (trié avant le rendu), garantissant la cohérence entre les tris.
+  */
+  const COLORS = [
+    '#2BA8A4', // i-teal
+    '#9DC55A', // i-lime
+    '#A8D9D5', // i-soft
+    '#4FB3AE', // teal medium
+    '#B8D96A', // lime light
+    '#7BBFBC', // teal clair
+  ]
+
+  // ── DONNÉES ─────────────────────────────────────────────────────────────
+  const raw = doctorants
+
+  /*
+    ⚠️ Champs "fictifs" ────────────────────────────────────────────────────
+    Les accès ci-dessous supposent une projection Sanity du type :
+      { name, university, cohort, thesisTitle, bio, email, photo }
+    Adapte les noms de champs si ta requête GROQ (queries.allDoctorants)
+    utilise d'autres clés. Tant qu'un champ n'existe pas, une valeur de
+    repli ("fictive") est utilisée pour que l'interface reste fonctionnelle
+    — tu pourras remplacer ces blocs plus tard sans toucher au reste du JS.
+  */
+  function getName(d, idx) {
+    return d.name || d.fullName ||
+      ((d.firstName || '') + ' ' + (d.lastName || '')).trim() ||
+      ('Doctorant ' + (idx + 1))
+  }
+  function getSubject(d) {
+    return d.thesisTitle || d.researchTitle || d.subject || d.title ||
+      'Sujet de thèse non renseigné'
+  }
+  function getBio(d) {
+    return d.bio || d.description || d.summary || ''
+  }
+  function getEmail(d) { return d.email || '' }
+  function getCohort(d) { return d.cohort || '—' }
+  function getUniversity(d) { return d.university || '—' }
+  function getPhoto(d) {
+    if (!d.photo) return null
+    if (typeof d.photo === 'string') return d.photo
+    if (d.photo.asset && d.photo.asset.url) return d.photo.asset.url
+    if (d.photo.url) return d.photo.url
+    return null
+  }
+  // Couleur déterministe (basée sur le nom) pour le contour d'une université
+  function hashColor(str) {
+    var sum = 0
+    for (var i = 0; i < str.length; i++) sum += str.charCodeAt(i)
+    return COLORS[sum % COLORS.length]
+  }
+
+  // ── ÉTAT ────────────────────────────────────────────────────────────────
+  let criterion = 'university'
+  let simulation = null
+  let view = 'overview'              // 'overview' | 'group' | 'doctorant'
+  let currentGroupName = null
+  let currentGroupDoctorants = []
+  let currentDoctorant = null
+  let currentDoctorantIdx = -1
+
+  // ── ÉLÉMENTS DOM ────────────────────────────────────────────────────────
+  const svgEl        = document.getElementById('bubble-svg')
+  const container    = document.getElementById('chart-container')
+  const chartTitle   = document.getElementById('chart-title')
+  const listEl       = document.getElementById('network-list')
+  const sortWrapper  = document.getElementById('sort-wrapper')
+
+  const svg = d3.select(svgEl)
+
+  // ── UTILITAIRES ─────────────────────────────────────────────────────────
+  function norm(val, min, max) {
+    return min === max ? 0.5 : (val - min) / (max - min)
+  }
+
+  function aggregate(crit, data) {
+    var source = data || raw
+    var key = crit === 'university' ? 'university' : 'cohort'
+    var map = {}
+    source.forEach(function(d) { map[d[key]] = (map[d[key]] || 0) + 1 })
+    return Object.entries(map)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+  }
+
+  // ── TITRE / BREADCRUMB ──────────────────────────────────────────────────
+  function renderTitle() {
+    if (view === 'overview') {
+      chartTitle.innerHTML = criterion === 'university'
+        ? 'Universités représentées'
+        : 'Cohortes représentées'
+      return
+    }
+    if (view === 'group') {
+      chartTitle.innerHTML =
+        '<button id="back-btn" class="chart-back-btn" type="button" aria-label="Retour">&larr;</button>' +
+        '<span>Doctorants — ' + currentGroupName + '</span>'
+    }
+    if (view === 'doctorant') {
+      chartTitle.innerHTML =
+        '<button id="back-btn" class="chart-back-btn" type="button" aria-label="Retour">&larr;</button>' +
+        '<span>' + currentGroupName + ' — ' + getName(currentDoctorant, currentDoctorantIdx) + '</span>'
+    }
+    var backBtn = document.getElementById('back-btn')
+    if (backBtn) backBtn.addEventListener('click', goBack)
+  }
+
+  // ── NAVIGATION ──────────────────────────────────────────────────────────
+  function goBack() {
+    if (view === 'doctorant') {
+      view = 'group'
+      currentDoctorant = null
+      currentDoctorantIdx = -1
+      renderGroupDetail(currentGroupName, currentGroupDoctorants)
+      renderGroupPanel(currentGroupName, currentGroupDoctorants)
+    } else if (view === 'group') {
+      view = 'overview'
+      currentGroupName = null
+      currentGroupDoctorants = []
+      render(criterion, null)
+    }
+    renderTitle()
+  }
+
+  function drillIntoGroup(crit, groupName) {
+    var key = crit === 'university' ? 'university' : 'cohort'
+    var list = raw.filter(function (d) { return d[key] === groupName })
+    view = 'group'
+    currentGroupName = groupName
+    currentGroupDoctorants = list
+    currentDoctorant = null
+    currentDoctorantIdx = -1
+    renderGroupDetail(groupName, list)
+    renderGroupPanel(groupName, list)
+    renderTitle()
+  }
+
+  function selectDoctorant(d, idx) {
+    view = 'doctorant'
+    currentDoctorant = d
+    currentDoctorantIdx = idx
+    highlightSelectedBubble(idx)
+    renderDoctorantPanel(d, idx)
+    renderTitle()
+  }
+
+  // ── RENDU : VUE D'ENSEMBLE (universités / cohortes) ─────────────────────
+  function render(crit, data) {
+    view = 'overview'
+    var groups = aggregate(crit, data)
+    const counts = groups.map(g => g.count)
+    const minC   = Math.min(...counts)
+    const maxC   = Math.max(...counts)
+
+    // Dimensions du conteneur au moment du rendu
+    const W = container.clientWidth  || 600
+    const H = container.clientHeight || 500
+
+    svg.attr('viewBox', `0 0 ${W} ${H}`)
+
+    // Construction des nœuds D3 avec rayon et opacité normalisés
+    const nodes = groups.map((g, i) => ({
+      name:    g.name,
+      count:   g.count,
+      r:       MIN_R + norm(g.count, minC, maxC) * (MAX_R - MIN_R),
+      opacity: 0.5 + norm(g.count, minC, maxC) * 0.5,
+      color:   COLORS[i % COLORS.length],
+      // Position initiale : légèrement dispersée autour du centre
+      x: W / 2 + (Math.random() - 0.5) * W * 0.3,
+      y: H / 2 + (Math.random() - 0.5) * H * 0.3,
+    }))
+
+    // Arrêt de la simulation précédente si elle tourne encore
+    if (simulation) simulation.stop()
+
+    // Nettoyage du SVG
+    svg.selectAll('*').remove()
+
+    // Création des groupes SVG (<g>) : un par bulle, cliquable pour drill-down
+    const bubbles = svg.selectAll('.bubble')
+      .data(nodes)
+      .enter()
+      .append('g')
+      .attr('class', 'bubble')
+      .style('cursor', 'pointer')
+      .on('click', function (event, d) {
+        event.stopPropagation()
+        drillIntoGroup(crit, d.name)
+      })
+
+    // Cercle
+    bubbles.append('circle')
+      .attr('r',       d => d.r)
+      .attr('fill',    d => d.color)
+      .attr('opacity', d => d.opacity)
+
+    // Nom de l'entité (université ou cohorte)
+    bubbles.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dominant-baseline', 'middle')
+      .attr('dy', '-0.6em')
+      .attr('fill', TEXT_COLOR)
+      .attr('font-family', FONT)
+      .attr('font-weight', '700')
+      .attr('font-size', d => Math.min(18, Math.max(10, d.r * 0.26)))
+      .attr('pointer-events', 'none')
+      .each(function(d) {
+        const maxChars = Math.floor(d.r * 0.38)
+        const label    = d.name.length > maxChars ? d.name.slice(0, maxChars - 1) + '…' : d.name
+        d3.select(this).text(label)
+      })
+
+    // Nombre de doctorants sous le nom
+    bubbles.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dominant-baseline', 'middle')
+      .attr('dy', '0.9em')
+      .attr('fill', TEXT_COLOR)
+      .attr('font-family', FONT)
+      .attr('font-size', d => Math.min(13, Math.max(9, d.r * 0.18)))
+      .attr('opacity', 0.75)
+      .attr('pointer-events', 'none')
+      .text(d => d.r > 34 ? `${d.count} Doctorant${d.count > 1 ? 's' : ''}` : d.count)
+
+    simulation = d3.forceSimulation(nodes)
+      .force('collide', d3.forceCollide(d => d.r + GAP).strength(1).iterations(3))
+      .force('center',  d3.forceCenter(W / 2, H / 2))
+      .force('charge',  d3.forceManyBody().strength(8))
+      .force('x',       d3.forceX(W / 2).strength(0.04))
+      .force('y',       d3.forceY(H / 2).strength(0.04))
+      .alphaDecay(0.02)
+      .on('tick', () => {
+        bubbles.attr('transform', d => {
+          d.x = Math.max(d.r + 2, Math.min(W - d.r - 2, d.x))
+          d.y = Math.max(d.r + 2, Math.min(H - d.r - 2, d.y))
+          return `translate(${d.x},${d.y})`
+        })
+      })
+
+    renderTitle()
+    updateOverviewList(groups, crit)
+  }
+
+  // ── RENDU : VUE DÉTAIL D'UNE UNIVERSITÉ (ou cohorte) ────────────────────
+  // Grand cercle = contour seul (vide, nom au centre-haut) + une bulle
+  // par doctorant, contenue dans ce grand cercle.
+  function renderGroupDetail(groupName, list) {
+    const W = container.clientWidth  || 600
+    const H = container.clientHeight || 500
+    svg.attr('viewBox', `0 0 ${W} ${H}`)
+
+    const cx = W / 2
+    const cy = H / 2
+    const R_big = Math.max(120, Math.min(W, H) * 0.42)
+    const groupColor = hashColor(groupName)
+
+    if (simulation) simulation.stop()
+    svg.selectAll('*').remove()
+
+    // Rectangle invisible en fond : capte les clics "hors bulle" -> retour
+    svg.append('rect')
+      .attr('x', 0).attr('y', 0)
+      .attr('width', W).attr('height', H)
+      .attr('fill', 'transparent')
+      .style('cursor', 'pointer')
+      .on('click', goBack)
+
+    // Grand cercle : contour uniquement, aucun remplissage ("vide à l'intérieur")
+    const bigCircle = svg.append('circle')
+      .attr('cx', cx).attr('cy', cy)
+      .attr('r', 0)
+      .attr('fill', 'none')
+      .attr('stroke', groupColor)
+      .attr('stroke-width', 3)
+      .style('pointer-events', 'none')
+
+    // Effet "grossit" : le contour s'anime jusqu'à sa taille finale
+    bigCircle.transition().duration(500).ease(d3.easeCubicOut).attr('r', R_big)
+
+    // Nom de l'université, affiché en haut, à l'intérieur du grand cercle
+    svg.append('text')
+      .attr('x', cx)
+      .attr('y', cy - R_big + 34)
+      .attr('text-anchor', 'middle')
+      .attr('fill', TEXT_COLOR)
+      .attr('font-family', FONT)
+      .attr('font-weight', '700')
+      .attr('font-size', 20)
+      .style('pointer-events', 'none')
+      .text(groupName)
+
+    // Une bulle par doctorant, contenue dans le grand cercle
+    const n = Math.max(list.length, 1)
+    const docR = Math.max(DOC_MIN_R, Math.min(DOC_MAX_R, (R_big * 0.75) / Math.sqrt(n)))
+
+    const nodes = list.map((d, i) => ({
+      data: d,
+      idx: i,
+      name: getName(d, i),
+      r: docR,
+      color: COLORS[i % COLORS.length],
+      x: cx + (Math.random() - 0.5) * (R_big - docR),
+      y: cy + (Math.random() - 0.5) * (R_big - docR),
+    }))
+
+    const bubbles = svg.selectAll('.doc-bubble')
+      .data(nodes)
+      .enter()
+      .append('g')
+      .attr('class', 'bubble doc-bubble')
+      .attr('data-idx', d => d.idx)
+      .style('cursor', 'pointer')
+      .style('opacity', 0)
+      .on('click', function (event, d) {
+        event.stopPropagation()
+        selectDoctorant(d.data, d.idx)
+      })
+
+    bubbles.append('circle')
+      .attr('class', 'doc-circle')
+      .attr('r', d => d.r)
+      .attr('fill', d => d.color)
+      .attr('opacity', 0.85)
+      .attr('stroke', '#ffffff')
+      .attr('stroke-width', 0)
+
+    bubbles.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dominant-baseline', 'middle')
+      .attr('fill', TEXT_COLOR)
+      .attr('font-family', FONT)
+      .attr('font-weight', '700')
+      .attr('font-size', d => Math.min(14, Math.max(9, d.r * 0.28)))
+      .attr('pointer-events', 'none')
+      .each(function (d) {
+        const maxChars = Math.floor(d.r * 0.34)
+        const label = d.name.length > maxChars ? d.name.slice(0, maxChars - 1) + '…' : d.name
+        d3.select(this).text(label)
+      })
+
+    // Apparition progressive des bulles "doctorant"
+    bubbles.transition().delay((d, i) => 200 + i * 40).duration(300).style('opacity', 1)
+
+    // Simulation : collision entre doctorants + confinement dans le grand cercle
+    simulation = d3.forceSimulation(nodes)
+      .force('collide', d3.forceCollide(d => d.r + 4).strength(1).iterations(3))
+      .force('x', d3.forceX(cx).strength(0.03))
+      .force('y', d3.forceY(cy).strength(0.03))
+      .alphaDecay(0.02)
+      .on('tick', () => {
+        nodes.forEach(d => {
+          const dx = d.x - cx
+          const dy = d.y - cy
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          const maxDist = R_big - d.r - 6
+          if (dist > maxDist && dist > 0) {
+            const scale = maxDist / dist
+            d.x = cx + dx * scale
+            d.y = cy + dy * scale
+          }
+        })
+        bubbles.attr('transform', d => `translate(${d.x},${d.y})`)
+      })
+  }
+
+  // Met en évidence (contour blanc) la bulle du doctorant sélectionné
+  function highlightSelectedBubble(idx) {
+    svg.selectAll('.doc-circle')
+      .attr('stroke-width', function () {
+        var parent = d3.select(this.parentNode)
+        return parent.attr('data-idx') == idx ? 3 : 0
+      })
+  }
+
+  // ── PANNEAU GAUCHE : LISTE (vue d'ensemble) ─────────────────────────────
+  function updateOverviewList(groups, crit) {
+    const header = crit === 'university' ? 'Université' : 'Cohorte'
+    listEl.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>${header}</th>
+            <th style="text-align:center">Doctorants</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="height:6px"></tr>
+          ${groups.map(g => `
+            <tr class="overview-row" data-name="${g.name}">
+              <td>${g.name}</td>
+              <td style="text-align:center">${g.count}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `
+    // Cliquer une ligne de la liste ouvre aussi le détail (cohérent avec les bulles)
+    listEl.querySelectorAll('.overview-row').forEach(row => {
+      row.style.cursor = 'pointer'
+      row.addEventListener('click', () => drillIntoGroup(criterion, row.dataset.name))
+    })
+  }
+
+  // ── PANNEAU GAUCHE : DÉTAIL D'UNE UNIVERSITÉ ─────────────────────────────
+  function renderGroupPanel(groupName, list) {
+    listEl.innerHTML = `
+      <button id="panel-back-btn" class="panel-back-btn" type="button">&larr; Toutes les universités</button>
+      <h3 class="panel-title">${groupName}</h3>
+      <p class="panel-subtitle">${list.length} doctorant${list.length > 1 ? 's' : ''}</p>
+      <ul class="doctorant-list">
+        ${list.map((d, i) => `
+          <li class="doctorant-item" data-idx="${i}">
+            <span class="doctorant-dot" style="background:${COLORS[i % COLORS.length]}"></span>
+            ${getName(d, i)}
+          </li>
+        `).join('')}
+      </ul>
+    `
+    document.getElementById('panel-back-btn').addEventListener('click', goBack)
+    listEl.querySelectorAll('.doctorant-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const i = Number(item.dataset.idx)
+        selectDoctorant(list[i], i)
+      })
+    })
+  }
+
+  // ── PANNEAU GAUCHE : FICHE D'UN DOCTORANT ────────────────────────────────
+  function renderDoctorantPanel(d, idx) {
+    const photo = getPhoto(d)
+    const email = getEmail(d)
+    const bio   = getBio(d)
+    listEl.innerHTML = `
+      <button id="panel-back-btn" class="panel-back-btn" type="button">&larr; ${currentGroupName}</button>
+      <div class="doctorant-card">
+        ${photo
+          ? `<img src="${photo}" alt="${getName(d, idx)}" class="doctorant-photo" />`
+          : `<div class="doctorant-photo doctorant-photo--placeholder">${getName(d, idx).charAt(0)}</div>`
+        }
+        <h3 class="panel-title">${getName(d, idx)}</h3>
+        <p class="panel-subtitle">${getSubject(d)}</p>
+        <dl class="doctorant-meta">
+          <dt>Université</dt><dd>${getUniversity(d) !== '—' ? getUniversity(d) : currentGroupName}</dd>
+          <dt>Cohorte</dt><dd>${getCohort(d)}</dd>
+          ${email ? `<dt>Email</dt><dd><a href="mailto:${email}">${email}</a></dd>` : ''}
+        </dl>
+        ${bio ? `<p class="doctorant-bio">${bio}</p>` : ''}
+      </div>
+    `
+    document.getElementById('panel-back-btn').addEventListener('click', goBack)
+  }
+
+  // ── RECHERCHE ────────────────────────────────────────────────────────────
+  // Filtre les données brutes selon le terme tapé, puis relance le rendu.
+  // La recherche ramène toujours à la vue d'ensemble.
+  var searchInput = document.getElementById('search-input')
+  if (searchInput) {
+    searchInput.addEventListener('input', function () {
+      var term = this.value.toLowerCase().trim()
+      if (!term) {
+        render(criterion, raw)
+        return
+      }
+      var filtered = raw.filter(function (d) {
+        var key = criterion === 'university' ? (d.university || '') : (d.cohort || '')
+        return key.toLowerCase().includes(term)
+      })
+      render(criterion, filtered)
+    })
+  }
+
+  // ── DROPDOWN "TRIER PAR" ─────────────────────────────────────────────────
+  const sortBtn     = document.getElementById('sort-btn')
+  const sortMenu    = document.getElementById('sort-menu')
+  const sortLabel   = document.getElementById('sort-label')
+  const sortChevron = document.getElementById('sort-chevron')
+  const sortOptions = document.querySelectorAll('.sort-option')
+
+  function openSort() {
+    sortMenu.classList.remove('hidden')
+    sortBtn.setAttribute('aria-expanded', 'true')
+    sortChevron.style.transform = 'rotate(180deg)'
+  }
+
+  function closeSort() {
+    sortMenu.classList.add('hidden')
+    sortBtn.setAttribute('aria-expanded', 'false')
+    sortChevron.style.transform = 'rotate(0deg)'
+  }
+
+  sortBtn && sortBtn.addEventListener('click', function (e) {
+    e.stopPropagation()
+    sortMenu.classList.contains('hidden') ? openSort() : closeSort()
+  })
+
+  // Sélection d'une option : ramène toujours à la vue d'ensemble
+  sortOptions.forEach(function (opt) {
+    opt.addEventListener('click', function () {
+      criterion = opt.dataset.criterion
+      sortLabel.textContent = opt.dataset.label
+      closeSort()
+      render(criterion, null)
+    })
+  })
+
+  // Fermeture au clic en dehors
+  document.addEventListener('click', closeSort)
+
+  // ── REDIMENSIONNEMENT RESPONSIVE ─────────────────────────────────────────
+  // Relance le rendu de la vue actuellement affichée (overview ou détail)
+  let resizeTimer
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer)
+    resizeTimer = setTimeout(() => {
+      if (view === 'overview') {
+        render(criterion)
+      } else {
+        renderGroupDetail(currentGroupName, currentGroupDoctorants)
+        if (view === 'doctorant') highlightSelectedBubble(currentDoctorantIdx)
+      }
+    }, 250)
+  })
+
+  // ── INITIALISATION ───────────────────────────────────────────────────────
+  // Léger délai pour s'assurer que le conteneur a ses dimensions finales
+  setTimeout(() => render(criterion), 50)
+</script>

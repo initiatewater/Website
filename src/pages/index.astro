@@ -1,0 +1,82 @@
+---
+/*
+  pages/index.astro
+  Page d'accueil — contenu About Us (anciennement about.astro).
+  about.astro peut être supprimé.
+*/
+import BaseLayout from '../layouts/BaseLayout.astro'
+---
+
+<BaseLayout
+  title="Home"
+  description="Initiate connects PhD candidates working on freshwater challenges worldwide."
+>
+  <div class="page-grid">
+
+    <!-- ── COLONNE GAUCHE ───────────────────────────────────── -->
+    <div class="flex flex-col justify-center pr-0 md:pr-16">
+
+      <h1 class="text-i-navy mb-6">
+        The initiate<br />program
+      </h1>
+
+      <p class="text-i-navy opacity-75 max-w-xs mb-10">
+        Are you a PhD candidate working on water-related challenges?
+        Do you want to connect with peers, experts, and mentors from
+        around the world to develop innovative solutions for global
+        water sustainability?
+      </p>
+
+      <a href="/apply" class="btn-outline">
+        Candidater ici
+      </a>
+    </div>
+
+    <!-- ── COLONNE DROITE : bulles + drop shapes (desktop) ─── -->
+    <div class="hidden md:flex relative w-full h-full min-h-[480px] items-center justify-center">
+
+      <div class="drop-shape"               style="width:145px; height:165px; top:6%;  right:8%;"></div>
+      <div class="drop-shape drop-shape--faint" style="width:115px; height:135px; top:18%; right:27%;"></div>
+      <div class="drop-shape drop-shape--faint" style="width:95px;  height:115px; top:52%; right:4%;"></div>
+      <div class="drop-shape"               style="width:125px; height:145px; bottom:6%; right:18%; opacity:0.22;"></div>
+      <div class="drop-shape drop-shape--faint" style="width:80px;  height:100px; bottom:16%; right:38%;"></div>
+      <div class="drop-shape drop-shape--faint" style="width:65px;  height:80px;  top:38%; left:2%; opacity:0.15;"></div>
+
+      <div class="stat-bubble bg-i-teal z-10" style="width:155px; height:155px; top:30%; left:6%;">
+        <span class="text-4xl font-bold leading-none">126</span>
+        <span class="text-xs font-medium mt-1 opacity-90 tracking-wide">Doctorants</span>
+      </div>
+
+      <div class="stat-bubble bg-i-navy z-10" style="width:180px; height:180px; top:14%; right:10%;">
+        <span class="text-5xl font-bold leading-none">12</span>
+        <span class="text-xs font-medium mt-1 opacity-90 tracking-wide">Universités</span>
+      </div>
+
+      <div class="stat-bubble bg-i-lime z-10" style="width:125px; height:125px; bottom:18%; left:28%;">
+        <span class="text-4xl font-bold leading-none">3</span>
+        <span class="text-xs font-medium mt-1 opacity-90 tracking-wide">Cohortes</span>
+      </div>
+    </div>
+
+    <!-- ── BULLES MOBILE ─────────────────────────────────────── -->
+    <div class="flex md:hidden flex-wrap justify-center items-center gap-6 py-8">
+      <div class="flex items-center gap-4">
+        <div class="rounded-full bg-i-teal flex flex-col items-center justify-center text-white" style="width:120px; height:120px;">
+          <span class="text-3xl font-bold leading-none">126</span>
+          <span class="text-xs font-medium mt-1 opacity-90">Doctorants</span>
+        </div>
+        <div class="rounded-full bg-i-navy flex flex-col items-center justify-center text-white" style="width:138px; height:138px;">
+          <span class="text-4xl font-bold leading-none">12</span>
+          <span class="text-xs font-medium mt-1 opacity-90">Universités</span>
+        </div>
+      </div>
+      <div class="flex justify-center w-full">
+        <div class="rounded-full bg-i-lime flex flex-col items-center justify-center text-white" style="width:100px; height:100px;">
+          <span class="text-3xl font-bold leading-none">3</span>
+          <span class="text-xs font-medium mt-1 opacity-90">Cohortes</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</BaseLayout>

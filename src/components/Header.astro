@@ -1,0 +1,391 @@
+---
+/*
+  Header.astro
+  Nav restructurée :
+  - "Home" pointe vers / (ancien About Us)
+  - "Content" est un dropdown avec Podcasts et Publications
+  - Plus de "About Us" ni "Resources" séparés
+
+  Dropdown desktop : clic (pas hover, plus fiable sur touch)
+  Dropdown mobile  : accordion dans le menu burger
+*/
+
+// Type pour les items simples et les items avec dropdown
+type SimpleItem   = { label: string; href: string; dropdown?: never }
+type DropdownItem = { label: string; href: null;   dropdown: { label: string; href: string }[] }
+type NavItem = SimpleItem | DropdownItem
+
+const navItems: NavItem[] = [
+  { label: 'Home',       href: '/' },
+  {
+    label: 'Content',
+    href: null,
+    dropdown: [
+      { label: 'Podcasts',     href: '/podcasts' },
+      { label: 'Publications', href: '/publications' },
+    ],
+  },
+  { label: 'Network',    href: '/network' },
+  { label: 'Apply',      href: '/apply' },
+  { label: 'Contact us', href: '/contact' },
+  { label: 'FAQ',        href: '/faq' },
+]
+
+const currentPath = Astro.url.pathname
+
+const isActive = (href: string): boolean =>
+  href === '/'
+    ? currentPath === '/'
+    : currentPath === href || currentPath.startsWith(href + '/')
+
+// Un dropdown est "actif" si une de ses sous-pages est la page courante
+const isDropdownActive = (item: DropdownItem): boolean =>
+  item.dropdown.some(sub => isActive(sub.href))
+---
+
+<!--
+  sticky top-0    : la navbar reste visible en haut même en scrollant
+  transition-transform duration-300 : animation fluide pour le hide/show
+  Le JS ci-dessous ajoute .nav-hidden (translateY -100%) quand on scrolle
+  vers le bas, et le retire quand on remonte.
+-->
+<header class="sticky top-0 z-50 bg-white flex items-center justify-between px-12 py-4" id="main-header" style="transition: transform 0.35s ease;">
+
+  <!-- LOGO -->
+  <a href="/" class="flex-shrink-0" aria-label="Initiate – Retour à l'accueil">
+    <img
+      src="/public/images/podcasts/INITIATE_logo_RVB.png"
+      alt="Initiate"
+      class="h-12 w-auto"
+      onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='flex';"
+    />
+    <span id="logo-fallback" class="hidden items-center gap-2 text-i-navy font-bold text-lg" aria-hidden="true">
+      <svg width="32" height="32" viewBox="0 0 36 36" fill="none">
+        <circle cx="18" cy="6"  r="4"   fill="#2BA8A4"/>
+        <circle cx="28" cy="12" r="3.5" fill="#2BA8A4" opacity=".8"/>
+        <circle cx="30" cy="23" r="3"   fill="#2BA8A4" opacity=".6"/>
+        <circle cx="22" cy="30" r="2.5" fill="#2BA8A4" opacity=".5"/>
+        <circle cx="12" cy="30" r="2"   fill="#9DC55A" opacity=".7"/>
+        <circle cx="6"  cy="23" r="2.5" fill="#2BA8A4" opacity=".4"/>
+        <circle cx="8"  cy="12" r="3"   fill="#2BA8A4" opacity=".6"/>
+      </svg>
+      initiate
+    </span>
+  </a>
+
+  <!-- NAV DESKTOP -->
+  <nav class="hidden md:flex items-center" aria-label="Navigation principale">
+    <ul class="flex items-center list-none m-0 p-0 gap-0">
+      {navItems.map((item, index) => (
+        <>
+          <li class="relative">
+
+            {item.dropdown ? (
+              /* ITEM AVEC DROPDOWN */
+              <div class="dropdown-wrapper">
+                <button
+                  class:list={[
+                    'dropdown-btn flex items-center gap-1 px-3 py-1 text-sm transition-colors duration-200 bg-transparent border-0 cursor-pointer',
+                    isDropdownActive(item)
+                      ? 'font-bold text-i-navy border-b-2 border-i-navy pb-0.5'
+                      : 'text-i-navy hover:text-i-teal',
+                  ]}
+                  aria-haspopup="true"
+                  aria-expanded="false"
+                >
+                  {item.label}
+                  <!-- Flèche bas : pivote à 180° quand ouvert -->
+                  <svg
+                    class="dropdown-chevron transition-transform duration-200"
+                    width="10" height="6" viewBox="0 0 10 6" fill="none"
+                    aria-hidden="true"
+                  >
+                    <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+
+                <!--
+                  Sous-menu : caché par défaut, révélé par JS au clic.
+                  absolute top-full : juste sous le bouton parent.
+                  min-w-[160px] : largeur minimale pour ne pas tronquer les labels.
+                -->
+                <ul class="dropdown-menu hidden absolute top-full left-0 mt-1 min-w-[160px] bg-white border border-gray-100 shadow-md rounded-md py-1 list-none m-0">
+                  {item.dropdown.map(sub => (
+                    <li>
+                      <a
+                        href={sub.href}
+                        class:list={[
+                          'block px-4 py-2 text-sm transition-colors duration-150',
+                          isActive(sub.href)
+                            ? 'font-bold text-i-teal'
+                            : 'text-i-navy hover:text-i-teal hover:bg-gray-50',
+                        ]}
+                        aria-current={isActive(sub.href) ? 'page' : undefined}
+                      >
+                        {sub.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+            ) : (
+              /* ITEM SIMPLE */
+              <a
+                href={item.href}
+                aria-current={isActive(item.href) ? 'page' : undefined}
+                class:list={[
+                  'px-3 py-1 text-sm transition-colors duration-200',
+                  isActive(item.href)
+                    ? 'font-bold text-i-navy border-b-2 border-i-navy pb-0.5'
+                    : 'text-i-navy hover:text-i-teal',
+                ]}
+              >
+                {item.label}
+              </a>
+            )}
+          </li>
+
+          {index < navItems.length - 1 && (
+            <li aria-hidden="true">
+              <span class="text-gray-300 text-xs select-none px-0.5">·</span>
+            </li>
+          )}
+        </>
+      ))}
+    </ul>
+  </nav>
+
+  <!-- BOUTON BURGER (MOBILE) -->
+  <button
+    id="burger-btn"
+    class="md:hidden flex flex-col gap-1.5 p-2 -mr-2 bg-transparent border-0 cursor-pointer"
+    aria-label="Ouvrir le menu"
+    aria-expanded="false"
+    aria-controls="mobile-nav"
+  >
+    <span id="bar1" class="block w-6 h-0.5 bg-i-navy" style="transition: transform 0.3s ease, opacity 0.3s ease;"></span>
+    <span id="bar2" class="block w-6 h-0.5 bg-i-navy" style="transition: opacity 0.3s ease;"></span>
+    <span id="bar3" class="block w-6 h-0.5 bg-i-navy" style="transition: transform 0.3s ease;"></span>
+  </button>
+
+  <!-- MENU MOBILE -->
+  <nav
+    id="mobile-nav"
+    class="absolute top-full left-0 right-0 bg-white border-t border-gray-100 shadow-md hidden"
+    aria-label="Navigation mobile"
+  >
+    <ul class="list-none m-0 py-3 px-0">
+      {navItems.map((item) => (
+        <li>
+          {item.dropdown ? (
+            /* DROPDOWN MOBILE : accordion */
+            <div class="mobile-accordion">
+              <button
+                class:list={[
+                  'mobile-accordion-btn w-full flex items-center justify-between px-8 py-3 text-base bg-transparent border-0 cursor-pointer transition-colors duration-150',
+                  isDropdownActive(item)
+                    ? 'font-bold text-i-teal'
+                    : 'text-i-navy',
+                ]}
+              >
+                {item.label}
+                <svg
+                  class="mobile-accordion-chevron transition-transform duration-200"
+                  width="10" height="6" viewBox="0 0 10 6" fill="none"
+                  aria-hidden="true"
+                >
+                  <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+
+              <!--
+                Sous-items mobile : indentés à gauche (pl-12) pour
+                marquer visuellement la hiérarchie sans ligne ou icône.
+              -->
+              <ul class="mobile-accordion-menu hidden list-none m-0 p-0 bg-gray-50">
+                {item.dropdown.map(sub => (
+                  <li>
+                    <a
+                      href={sub.href}
+                      class:list={[
+                        'block pl-12 pr-8 py-2.5 text-sm transition-colors duration-150',
+                        isActive(sub.href)
+                          ? 'font-bold text-i-teal'
+                          : 'text-i-navy hover:text-i-teal',
+                      ]}
+                    >
+                      {sub.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+          ) : (
+            /* ITEM SIMPLE MOBILE */
+            <a
+              href={item.href}
+              aria-current={isActive(item.href) ? 'page' : undefined}
+              class:list={[
+                'block px-8 py-3 text-base transition-colors duration-150',
+                isActive(item.href)
+                  ? 'font-bold text-i-teal'
+                  : 'text-i-navy hover:text-i-teal hover:bg-gray-50',
+              ]}
+            >
+              {item.label}
+            </a>
+          )}
+        </li>
+      ))}
+    </ul>
+  </nav>
+</header>
+
+<script is:inline>
+  (function () {
+
+    /* ── BURGER MOBILE ─────────────────────────────────────── */
+    const btn  = document.getElementById('burger-btn')
+    const nav  = document.getElementById('mobile-nav')
+    const bar1 = document.getElementById('bar1')
+    const bar2 = document.getElementById('bar2')
+    const bar3 = document.getElementById('bar3')
+
+    let burgerOpen = false
+
+    function openBurger() {
+      burgerOpen = true
+      nav.classList.remove('hidden')
+      btn.setAttribute('aria-expanded', 'true')
+      btn.setAttribute('aria-label', 'Fermer le menu')
+      bar1.style.transform = 'translateY(8px) rotate(45deg)'
+      bar2.style.opacity   = '0'
+      bar3.style.transform = 'translateY(-8px) rotate(-45deg)'
+    }
+
+    function closeBurger() {
+      burgerOpen = false
+      nav.classList.add('hidden')
+      btn.setAttribute('aria-expanded', 'false')
+      btn.setAttribute('aria-label', 'Ouvrir le menu')
+      bar1.style.transform = ''
+      bar2.style.opacity   = '1'
+      bar3.style.transform = ''
+    }
+
+    btn && btn.addEventListener('click', function () {
+      burgerOpen ? closeBurger() : openBurger()
+    })
+
+    /* ── DROPDOWN DESKTOP ──────────────────────────────────────
+       Clic sur le bouton "Content" : ouvre/ferme le sous-menu.
+       Clic ailleurs sur la page : ferme tous les dropdowns.
+    ─────────────────────────────────────────────────────────── */
+    document.querySelectorAll('.dropdown-wrapper').forEach(function (wrapper) {
+      const dropBtn  = wrapper.querySelector('.dropdown-btn')
+      const dropMenu = wrapper.querySelector('.dropdown-menu')
+      const chevron  = wrapper.querySelector('.dropdown-chevron')
+
+      dropBtn && dropBtn.addEventListener('click', function (e) {
+        e.stopPropagation() // évite que le clic remonte et referme immédiatement
+
+        const isOpen = !dropMenu.classList.contains('hidden')
+
+        // Ferme tous les autres dropdowns avant d'ouvrir celui-ci
+        closeAllDropdowns()
+
+        if (!isOpen) {
+          dropMenu.classList.remove('hidden')
+          dropBtn.setAttribute('aria-expanded', 'true')
+          chevron && chevron.classList.add('rotate-180')
+        }
+      })
+    })
+
+    // Ferme les dropdowns au clic en dehors
+    document.addEventListener('click', closeAllDropdowns)
+
+    function closeAllDropdowns() {
+      document.querySelectorAll('.dropdown-wrapper').forEach(function (w) {
+        w.querySelector('.dropdown-menu')?.classList.add('hidden')
+        w.querySelector('.dropdown-btn')?.setAttribute('aria-expanded', 'false')
+        w.querySelector('.dropdown-chevron')?.classList.remove('rotate-180')
+      })
+    }
+
+    /* ── ACCORDION MOBILE ──────────────────────────────────────
+       Clic sur "Content" dans le menu burger : déplie les sous-items.
+    ─────────────────────────────────────────────────────────── */
+    document.querySelectorAll('.mobile-accordion').forEach(function (acc) {
+      const accBtn     = acc.querySelector('.mobile-accordion-btn')
+      const accMenu    = acc.querySelector('.mobile-accordion-menu')
+      const accChevron = acc.querySelector('.mobile-accordion-chevron')
+
+      accBtn && accBtn.addEventListener('click', function () {
+        const isOpen = !accMenu.classList.contains('hidden')
+        accMenu.classList.toggle('hidden', isOpen)
+        accChevron && accChevron.classList.toggle('rotate-180', !isOpen)
+      })
+    })
+
+    // Fermeture du burger au clic sur un lien simple du menu mobile
+    nav && nav.querySelectorAll('a').forEach(function (link) {
+      link.addEventListener('click', closeBurger)
+    })
+
+  })();
+
+  /* ── HIDE / SHOW NAVBAR AU SCROLL ─────────────────────────────
+    Activé uniquement si data-nav-hide="true" sur le <body>.
+    Mettre navHide={false} dans BaseLayout pour désactiver par page.
+
+    Timings asymétriques :
+    - Cacher  : 0.35s ease  (plus lent, moins intrusif)
+    - Montrer : 0.18s ease  (plus rapide, réactif)
+
+    Mouse-at-top : réapparition si souris < 20px du bord supérieur (PC).
+  ─────────────────────────────────────────────────────────────── */
+  (function () {
+    const header = document.getElementById('main-header')
+    if (!header) return
+
+    // Lit la variable de contrôle posée par BaseLayout
+    const hideEnabled = document.body.dataset.navHide === 'true'
+    if (!hideEnabled) return
+
+    let lastScroll = 0
+    let isHidden = false
+
+    function hideNav() {
+      if (isHidden) return
+      isHidden = true
+      header.style.transition = 'transform 0.35s ease'
+      header.style.transform = 'translateY(-100%)'
+    }
+
+    function showNav() {
+      if (!isHidden) return
+      isHidden = false
+      header.style.transition = 'transform 0.18s ease'
+      header.style.transform = 'translateY(0)'
+    }
+
+    // Scroll : cache vers le bas, montre vers le haut
+    window.addEventListener('scroll', function () {
+      const current = window.scrollY
+      if (current > lastScroll && current > 80) {
+        hideNav()
+      } else {
+        showNav()
+      }
+      lastScroll = current <= 0 ? 0 : current
+    }, { passive: true })
+
+    // Souris en haut de page → montre la navbar (PC uniquement)
+    document.addEventListener('mousemove', function (e) {
+      if (e.clientY < 20) showNav()
+    })
+  })()
+</script>

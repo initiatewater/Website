@@ -1,0 +1,29 @@
+{
+  "name": "c-users-alexandre-desktop-02-work-projet-site-web",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/vercel": "^11.0.3",
+    "@sanity/client": "^7.23.2",
+    "@tailwindcss/vite": "^4.3.2",
+    "astro": "^7.0.6",
+    "d3": "^7.9.0",
+    "resend": "^6.17.2",
+    "tailwindcss": "^4.3.2"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true
+  },
+  "devDependencies": {
+    "@sanity/import": "^6.0.3"
+  }
+}

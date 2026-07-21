@@ -1,0 +1,152 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import { sanityClient, queries } from '../lib/sanity'
+
+const publications = await sanityClient.fetch(queries.allPublications).catch(() => [])
+---
+
+<BaseLayout title="Publications" navHide={false}>
+
+  <!-- DESKTOP -->
+  <div class="hidden md:grid" style="
+    grid-template-columns: 5fr 7fr;
+    height: calc(100vh - 72px);
+    padding: 0 3.5rem;
+    gap: 2rem;
+  ">
+    <!-- GAUCHE : fixe -->
+    <div class="flex flex-col justify-center pr-8">
+      <h1 class="text-i-navy mb-6">Publications</h1>
+      <p class="text-i-navy opacity-75 max-w-xs mb-8">
+        Varied collaborative academic content, including research articles,
+        case studies, and reflective essays on water sector topics.
+      </p>
+      <!--
+        Barre de recherche : filtre la liste en temps réel côté client.
+        L'input déclenche le JS en bas de page.
+      -->
+      <div class="search-bar max-w-xs">
+        <input
+          type="text"
+          id="pub-search"
+          placeholder="Search a publication"
+          aria-label="Search a publication"
+          autocomplete="off"
+        />
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="text-gray-400 flex-shrink-0">
+          <circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- DROITE : liste scrollable -->
+    <div class="no-scrollbar overflow-y-auto py-8">
+      <div id="pub-list" class="divide-y divide-gray-100">
+        {publications.map((pub) => (
+          <article
+            class="pub-item flex gap-6 py-5 group cursor-pointer"
+            data-title={pub.title.toLowerCase()}
+            data-author={pub.author.toLowerCase()}
+          >
+            <div class="w-48 flex-shrink-0 overflow-hidden bg-i-soft/30">
+              {pub.image ? (
+                <img
+                  src={pub.image}
+                  alt={pub.title}
+                  class="w-full h-full object-cover aspect-video group-hover:scale-105 transition-transform duration-300"
+                />
+              ) : (
+                <div class="w-full aspect-video bg-i-soft/40"></div>
+              )}
+            </div>
+            <div class="flex flex-col justify-center">
+              <h3 class="text-i-navy font-bold leading-snug mb-1 group-hover:text-i-teal transition-colors duration-200">
+                {pub.title}
+              </h3>
+              <p class="text-sm text-i-navy opacity-60 m-0">{pub.author}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <!-- Message si aucun résultat de recherche -->
+      <p id="pub-empty" class="hidden text-i-navy opacity-50 py-8 text-sm">
+        Aucune publication ne correspond à votre recherche.
+      </p>
+    </div>
+  </div>
+
+  <!-- MOBILE -->
+  <div class="md:hidden px-6 py-10">
+    <h1 class="text-i-navy mb-6">Publications</h1>
+    <p class="text-i-navy opacity-75 mb-6">
+      Varied collaborative academic content, including research articles,
+      case studies, and reflective essays on water sector topics.
+    </p>
+    <div class="search-bar mb-8">
+      <input type="text" id="pub-search-mobile" placeholder="Search a publication" autocomplete="off" />
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="text-gray-400 flex-shrink-0">
+        <circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div id="pub-list-mobile" class="divide-y divide-gray-100">
+      {publications.map((pub) => (
+        <article
+          class="pub-item-mobile flex gap-4 py-4"
+          data-title={pub.title.toLowerCase()}
+          data-author={pub.author.toLowerCase()}
+        >
+          <div class="w-28 flex-shrink-0 overflow-hidden bg-i-soft/30">
+            {pub.image ? (
+              <img src={pub.image} alt={pub.title} class="w-full h-full object-cover aspect-video" />
+            ) : (
+              <div class="w-full aspect-video bg-i-soft/40"></div>
+            )}
+          </div>
+          <div class="flex flex-col justify-center">
+            <h3 class="text-i-navy font-bold leading-snug mb-1 text-base">{pub.title}</h3>
+            <p class="text-sm text-i-navy opacity-60 m-0">{pub.author}</p>
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+
+</BaseLayout>
+
+<script is:inline>
+  (function () {
+    // Fonction générique de filtre : s'applique à desktop et mobile
+    function setupSearch(inputId, itemSelector, emptyId) {
+      var input = document.getElementById(inputId)
+      var empty = emptyId ? document.getElementById(emptyId) : null
+      if (!input) return
+
+      input.addEventListener('input', function () {
+        var term = this.value.toLowerCase().trim()
+        var items = document.querySelectorAll(itemSelector)
+        var visible = 0
+
+        items.forEach(function (item) {
+          var title  = item.dataset.title  || ''
+          var author = item.dataset.author || ''
+          var match  = !term || title.includes(term) || author.includes(term)
+          item.style.display = match ? '' : 'none'
+          if (match) visible++
+        })
+
+        if (empty) empty.classList.toggle('hidden', visible > 0)
+      })
+    }
+
+    setupSearch('pub-search',        '.pub-item',        'pub-empty')
+    setupSearch('pub-search-mobile', '.pub-item-mobile', null)
+  })()
+</script>
+
+<style>
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+</style>

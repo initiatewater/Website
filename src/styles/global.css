@@ -1,0 +1,157 @@
+@import "tailwindcss";
+
+@theme {
+  --color-i-teal:  #2BA8A4;
+  --color-i-soft:  #A8D9D5;
+  --color-i-lime:  #9DC55A;
+  --color-i-navy:  #0D3B5E;
+  --color-i-cream: #F5F7FA;
+  --font-suze: 'Suze', Georgia, serif;
+}
+
+/* ── POLICE ───────────────────────────────────────────────────── */
+@font-face {
+  font-family: 'Suze';
+  src: url('/fonts/SUSE-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Suze';
+  src: url('/fonts/SUSE-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── BASE ─────────────────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  /* Scroll fluide sur tous les liens ancres (#section) */
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-suze);
+    color: var(--color-i-navy);
+    background-color: #ffffff;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1 { @apply text-5xl font-bold leading-tight; }
+  h2 { @apply text-2xl font-bold leading-snug; }
+  h3 { @apply text-lg font-bold; }
+  p  { @apply text-base leading-relaxed; }
+  a  { @apply no-underline; }
+}
+
+/* ── COMPOSANTS ───────────────────────────────────────────────── */
+@layer components {
+
+  /*
+    page-grid : layout standard 2 colonnes desktop.
+    padding-top/bottom : respiration minimale entre navbar et contenu.
+    Sur mobile : colonne unique, padding latéral confortable.
+  */
+  .page-grid {
+    display: grid;
+    grid-template-columns: 5fr 7fr;
+    min-height: calc(100vh - 72px);
+    padding: 3rem 3.5rem;   /* haut/bas 3rem, gauche/droite 3.5rem */
+    align-items: center;
+    gap: 2rem;
+  }
+
+  .page-grid--equal {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+
+  @media (max-width: 768px) {
+    .page-grid,
+    .page-grid--equal {
+      grid-template-columns: 1fr;
+      padding: 2.5rem 1.75rem;  /* marge latérale mobile augmentée */
+      min-height: auto;
+    }
+  }
+
+  /* drop-shape */
+  .drop-shape {
+    position: absolute;
+    border-radius: 68% 32% 47% 53% / 44% 57% 43% 56%;
+    background-color: var(--color-i-soft);
+    opacity: 0.35;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .drop-shape--faint { opacity: 0.18; }
+
+  /* stat-bubble */
+  .stat-bubble {
+    @apply absolute rounded-full flex flex-col items-center justify-center text-white;
+  }
+
+  /* btn-outline */
+  .btn-outline {
+    @apply inline-flex items-center gap-3 self-start
+           rounded-full border-2 border-i-navy
+           px-8 py-3 text-sm font-semibold text-i-navy
+           hover:bg-i-navy hover:text-white
+           transition-colors duration-200 cursor-pointer;
+  }
+
+  /* input-field */
+  .input-field {
+    @apply w-full rounded-md border border-gray-200
+           px-4 py-3 text-sm
+           placeholder:text-gray-400 bg-white
+           focus:outline-none focus:border-i-teal
+           transition-colors duration-200;
+  }
+
+  textarea.input-field { @apply resize-none; }
+
+  /* upload-zone */
+  .upload-zone {
+    @apply flex items-center gap-3 w-full
+           rounded-md border-2 border-dashed border-gray-200
+           px-4 py-4 text-sm text-gray-400
+           hover:border-i-teal hover:text-i-teal
+           transition-colors duration-200 cursor-pointer;
+  }
+
+  .upload-zone--done {
+    @apply border-i-teal text-i-teal;
+    border-style: solid; /* remplace les tirets : fichier présent = zone fermée */
+  }
+
+  /* Animation sur l'icône check au moment de la validation */
+  @keyframes pop-check {
+    0%   { transform: scale(0.5); opacity: 0; }
+    60%  { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+
+  .icon-check-animate {
+    animation: pop-check 0.25s ease-out forwards;
+  }
+
+  /* search-bar */
+  .search-bar {
+    @apply flex items-center gap-2 rounded-full border border-gray-200
+           px-4 py-2 text-sm text-i-navy
+           focus-within:border-i-teal
+           transition-colors duration-200;
+  }
+
+  .search-bar input {
+    @apply flex-1 bg-transparent outline-none placeholder:text-gray-400;
+  }
+}

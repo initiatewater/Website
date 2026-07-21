@@ -1,0 +1,98 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+---
+
+<BaseLayout title="Podcasts" navHide={false}>
+
+  <!--
+    Layout custom (pas page-grid) :
+    - Hauteur totale = viewport moins la navbar → la page elle-même ne scroll PAS
+    - Colonne gauche : flex centré, immobile
+    - Colonne droite : overflow-y-auto → seule cette colonne défile
+    - Le scrollbar est masqué visuellement (classe .no-scrollbar)
+  -->
+  <div class="hidden md:grid" style="
+    grid-template-columns: 5fr 7fr;
+    height: calc(100vh - 72px);
+    padding: 0 3.5rem;
+    gap: 2rem;
+  ">
+
+    <!-- GAUCHE : fixe -->
+    <div class="flex flex-col justify-center pr-8">
+      <h1 class="text-i-navy mb-6">Podcasts</h1>
+      <p class="text-i-navy opacity-75 max-w-xs mb-10">
+        Are you a PhD candidate working on water-related challenges?
+        Do you want to connect with peers, experts, and mentors from
+        around the world to develop innovative solutions for global
+        water sustainability?
+      </p>
+      <a href="#" class="btn-outline">
+        Listen to the podcast
+        <svg width="28" height="14" viewBox="0 0 28 14" fill="none" aria-hidden="true">
+          <rect x="0"  y="4" width="2" height="6"  rx="1" fill="currentColor"/>
+          <rect x="4"  y="2" width="2" height="10" rx="1" fill="currentColor"/>
+          <rect x="8"  y="0" width="2" height="14" rx="1" fill="currentColor"/>
+          <rect x="12" y="3" width="2" height="8"  rx="1" fill="currentColor"/>
+          <rect x="16" y="5" width="2" height="4"  rx="1" fill="currentColor"/>
+        </svg>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <circle cx="7" cy="7" r="6.5" stroke="currentColor" stroke-width="1.2"/>
+          <polygon points="5.5,4 10,7 5.5,10" fill="currentColor"/>
+        </svg>
+      </a>
+    </div>
+
+    <!--
+      DROITE : conteneur scrollable.
+      overflow-y: auto → scrollable.
+      no-scrollbar → scrollbar invisible (voir <style> en bas).
+      padding vertical : respiration haut/bas dans le flux scrollable.
+    -->
+    <div class="no-scrollbar overflow-y-auto py-8">
+      <div class="grid grid-cols-3 lg:grid-cols-4 gap-0.5">
+        {Array.from({ length: 24 }).map((_, i) => (
+          <div class="aspect-square overflow-hidden bg-i-soft/30">
+            <img
+              src={`/images/podcasts/placeholder-${(i % 12) + 1}.jpg`}
+              alt={`Podcast ${i + 1}`}
+              class="w-full h-full object-cover"
+              onerror="this.style.display='none'"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <!-- VERSION MOBILE : layout normal, tout scroll avec la page -->
+  <div class="md:hidden px-6 py-10">
+    <h1 class="text-i-navy mb-6">Podcasts</h1>
+    <p class="text-i-navy opacity-75 mb-8">
+      Are you a PhD candidate working on water-related challenges?
+      Do you want to connect with peers, experts, and mentors from
+      around the world to develop innovative solutions for global
+      water sustainability?
+    </p>
+    <a href="#" class="btn-outline mb-8">Listen to the podcast</a>
+    <div class="grid grid-cols-2 gap-0.5 mt-8">
+      {Array.from({ length: 12 }).map((_, i) => (
+        <div class="aspect-square overflow-hidden bg-i-soft/30">
+          <img
+            src={`/images/podcasts/placeholder-${(i % 12) + 1}.jpg`}
+            alt={`Podcast ${i + 1}`}
+            class="w-full h-full object-cover"
+            onerror="this.style.display='none'"
+          />
+        </div>
+      ))}
+    </div>
+  </div>
+
+</BaseLayout>
+
+<style>
+  /* Masque le scrollbar sur tous les navigateurs */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+</style>

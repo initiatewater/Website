@@ -1,0 +1,86 @@
+---
+/*
+  BaseLayout.astro
+  Shell HTML commun à toutes les pages du site.
+  Chaque page l'importe et passe ses props.
+
+  Usage dans une page :
+  ─────────────────────────────────────────────
+  ---
+  import BaseLayout from '../layouts/BaseLayout.astro'
+  ---
+  <BaseLayout title="About Us" description="Le programme Initiate…">
+    <div class="page-grid">
+      <div>contenu gauche</div>
+      <div>contenu droit</div>
+    </div>
+  </BaseLayout>
+  ─────────────────────────────────────────────
+*/
+
+import Header from '../components/Header.astro'
+import '../styles/global.css'
+
+// Props TypeScript : ce que chaque page DOIT ou PEUT passer à ce layout.
+interface Props {
+  title: string
+  description?: string
+  formPage?: boolean
+  navHide?: boolean   // false → désactive le hide/show navbar au scroll sur cette page
+}
+
+const {
+  title,
+  description = 'Initiate – Connecting PhD candidates in freshwater research worldwide.',
+  formPage = false,
+  navHide = true,
+} = Astro.props
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Titre onglet navigateur : "About Us | Initiate", "FAQ | Initiate"… -->
+  <title>{title} | Initiate</title>
+
+  <!-- Résumé pour les moteurs de recherche (160 caractères max recommandés) -->
+  <meta name="description" content={description} />
+
+  <!--
+    Préchargement de Suze-Regular : le navigateur charge la police en priorité,
+    ce qui réduit le délai avant affichage du bon rendu typographique.
+    crossorigin est obligatoire pour les polices (contrainte CORS des navigateurs).
+  -->
+  <link
+    rel="preload"
+    href="/fonts/Suze-Regular.woff2"
+    as="font"
+    type="font/woff2"
+    crossorigin
+  />
+</head>
+
+<!--
+  class:list : syntaxe Astro pour les classes conditionnelles.
+  Si formPage=true : ajoute bg-i-cream (#F5F7FA).
+  Sinon : fond blanc par défaut (défini dans global.css body).
+-->
+<body class:list={[formPage && 'bg-i-cream']} data-nav-hide={navHide ? 'true' : 'false'}>
+
+  <!-- Header : commun à toutes les pages, géré dans Header.astro -->
+  <Header />
+
+  <!--
+    <slot /> : "trou" dans lequel Astro injecte le contenu de chaque page.
+    Tout ce qui est entre <BaseLayout>…</BaseLayout> dans une page
+    se retrouve ici au moment du build.
+  -->
+  <main>
+    <slot />
+  </main>
+
+</body>
+</html>

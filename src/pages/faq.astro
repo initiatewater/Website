@@ -1,0 +1,68 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import { sanityClient, queries } from '../lib/sanity'
+
+// Fetch depuis Sanity au build time
+// Si Sanity est vide, fallback sur un tableau vide
+const faqs = await sanityClient.fetch(queries.allFaqs).catch(() => [])
+---
+
+<BaseLayout title="FAQ" description="Frequently asked questions about the Initiate program.">
+
+  <div class="relative" style="height: calc(100vh - 72px); overflow: hidden;">
+
+    <div class="hidden md:block pointer-events-none">
+      <div class="drop-shape" style="width:130px; height:150px; top:8%;  right:6%;"></div>
+      <div class="drop-shape drop-shape--faint" style="width:100px; height:120px; top:22%; right:20%;"></div>
+      <div class="drop-shape" style="width:80px;  height:95px;  top:44%; right:3%; opacity:0.2;"></div>
+      <div class="drop-shape drop-shape--faint" style="width:55px;  height:70px;  top:38%; right:14%;"></div>
+      <div class="drop-shape" style="width:110px; height:130px; bottom:10%; right:12%; opacity:0.22;"></div>
+      <div class="drop-shape drop-shape--faint" style="width:70px;  height:85px;  bottom:22%; right:28%;"></div>
+    </div>
+
+    <div class="relative z-10 h-full flex flex-col px-12 pt-16">
+      <h1 class="text-i-navy mb-10 flex-shrink-0">FAQ</h1>
+
+      <div id="faq-scroll" class="flex-1 overflow-y-auto pb-16" style="scrollbar-width: none;">
+        {faqs.length > 0 ? (
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-10 max-w-4xl">
+            {faqs.map((faq) => (
+              <div class="faq-item">
+                <h3 class="text-i-navy mb-2">{faq.question}</h3>
+                <p class="text-i-navy opacity-70 text-sm m-0">{faq.answer}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p class="text-i-navy opacity-50">Aucune question pour l'instant.</p>
+        )}
+      </div>
+    </div>
+
+    <div
+      id="faq-gradient"
+      class="pointer-events-none absolute bottom-0 left-0 right-0 z-20"
+      style="height: 120px; background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.95));"
+    ></div>
+  </div>
+
+</BaseLayout>
+
+<script is:inline>
+  (function () {
+    var scroll   = document.getElementById('faq-scroll')
+    var gradient = document.getElementById('faq-gradient')
+    if (!scroll || !gradient) return
+    function updateGradient() {
+      var atBottom = scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - 8
+      gradient.style.opacity = atBottom ? '0' : '1'
+      gradient.style.transition = 'opacity 0.3s ease'
+    }
+    scroll.addEventListener('scroll', updateGradient, { passive: true })
+    updateGradient()
+  })()
+</script>
+
+<style>
+  #faq-scroll::-webkit-scrollbar { display: none; }
+</style>
