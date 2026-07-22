@@ -475,7 +475,8 @@ const doctorants = await sanityClient.fetch(queries.allDoctorants).catch(() => [
   let simulation = null
   let view = 'overview'              // 'overview' | 'group' | 'doctorant'
   let currentGroupName = null
-  let currentGroupDoctorants = []
+  let currentGroupAllDoctorants = []  // liste complète (non filtrée) du groupe ouvert
+  let currentGroupDoctorants = []     // liste actuellement affichée (peut être filtrée par la recherche)
   let currentDoctorant = null
   let currentDoctorantIdx = -1
 
@@ -605,7 +606,12 @@ const doctorants = await sanityClient.fetch(queries.allDoctorants).catch(() => [
     } else if (view === 'group') {
       view = 'overview'
       currentGroupName = null
+      currentGroupAllDoctorants = []
       currentGroupDoctorants = []
+      if (searchInput) {
+        searchInput.value = ''
+        searchInput.placeholder = 'Search'
+      }
       render(criterion, null)
     }
     renderTitle()
@@ -616,9 +622,14 @@ const doctorants = await sanityClient.fetch(queries.allDoctorants).catch(() => [
     var list = raw.filter(function (d) { return d[key] === groupName })
     view = 'group'
     currentGroupName = groupName
+    currentGroupAllDoctorants = list
     currentGroupDoctorants = list
     currentDoctorant = null
     currentDoctorantIdx = -1
+    if (searchInput) {
+      searchInput.value = ''
+      searchInput.placeholder = 'Rechercher un profil'
+    }
     renderGroupDetail(groupName, list)
     renderGroupPanel(groupName, list)
     renderTitle()
@@ -983,21 +994,44 @@ const doctorants = await sanityClient.fetch(queries.allDoctorants).catch(() => [
   }
 
   // ── RECHERCHE ────────────────────────────────────────────────────────────
-  // Filtre les données brutes selon le terme tapé, puis relance le rendu.
-  // La recherche ramène toujours à la vue d'ensemble.
+  // Le comportement dépend du niveau actuellement affiché :
+  // - vue d'ensemble : filtre les universités/cohortes (comme avant)
+  // - vue détail (université ouverte, avec ou sans profil sélectionné) :
+  //   filtre les profils de doctorants à l'intérieur de ce groupe, sans
+  //   jamais revenir à la vue d'ensemble.
   var searchInput = document.getElementById('search-input')
   if (searchInput) {
     searchInput.addEventListener('input', function () {
       var term = this.value.toLowerCase().trim()
-      if (!term) {
-        render(criterion, raw)
+
+      if (view === 'overview') {
+        if (!term) {
+          render(criterion, raw)
+          return
+        }
+        var filteredGroups = raw.filter(function (d) {
+          var key = criterion === 'university' ? (d.university || '') : (d.cohort || '')
+          return key.toLowerCase().includes(term)
+        })
+        render(criterion, filteredGroups)
         return
       }
-      var filtered = raw.filter(function (d) {
-        var key = criterion === 'university' ? (d.university || '') : (d.cohort || '')
-        return key.toLowerCase().includes(term)
-      })
-      render(criterion, filtered)
+
+      // view === 'group' ou 'doctorant' : on recherche parmi les doctorants
+      // du groupe déjà ouvert, jamais parmi les universités.
+      var filteredDoctorants = term
+        ? currentGroupAllDoctorants.filter(function (d, i) {
+            return getName(d, i).toLowerCase().includes(term)
+          })
+        : currentGroupAllDoctorants.slice()
+
+      currentGroupDoctorants = filteredDoctorants
+      view = 'group'
+      currentDoctorant = null
+      currentDoctorantIdx = -1
+      renderGroupDetail(currentGroupName, filteredDoctorants)
+      renderGroupPanel(currentGroupName, filteredDoctorants)
+      renderTitle()
     })
   }
 
