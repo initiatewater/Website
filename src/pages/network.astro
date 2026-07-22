@@ -96,6 +96,12 @@ const doctorants = await sanityClient.fetch(queries.allDoctorants).catch(() => [
       <!-- Barre de recherche -->
       <div class="search-bar mb-8 max-w-xs">
         <input type="text" placeholder="Search" id="search-input" />
+        <button type="button" id="search-clear" class="search-clear-btn" aria-label="Effacer la recherche" style="display:none;">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <line x1="1" y1="1" x2="11" y2="11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            <line x1="11" y1="1" x2="1" y2="11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </button>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="text-gray-400 flex-shrink-0">
           <circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.5"/>
           <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -149,6 +155,25 @@ const doctorants = await sanityClient.fetch(queries.allDoctorants).catch(() => [
 <style is:global>
   #chart-container {
     position: relative; /* nécessaire pour positionner le tooltip au survol */
+  }
+
+  /* Croix pour vider la barre de recherche */
+  .search-clear-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.1rem;
+    height: 1.1rem;
+    padding: 0;
+    border: none;
+    background: none;
+    color: #9ca3af;
+    cursor: pointer;
+    transition: color 0.15s ease;
+  }
+  .search-clear-btn:hover {
+    color: #2BA8A4;
   }
 
   #network-list table {
@@ -489,6 +514,15 @@ const doctorants = await sanityClient.fetch(queries.allDoctorants).catch(() => [
 
   const svg = d3.select(svgEl)
 
+  // ── DÉTECTION TACTILE / SMARTPHONE ───────────────────────────────────────
+  // (hover: hover) + (pointer: fine) = un vrai dispositif de pointage avec
+  // survol (souris/trackpad). Sur smartphone/tablette tactile, ce test est
+  // faux : on désactive alors totalement le tooltip de survol.
+  function isHoverCapable() {
+    return typeof window.matchMedia === 'function' &&
+      window.matchMedia('(hover: hover) and (pointer: fine)').matches
+  }
+
   // ── TOOLTIP AU SURVOL ────────────────────────────────────────────────────
   // Un seul élément réutilisé pour toutes les bulles (université ET doctorant)
   const tooltipEl = document.createElement('div')
@@ -502,12 +536,14 @@ const doctorants = await sanityClient.fetch(queries.allDoctorants).catch(() => [
   }
 
   function showTooltip(html, event) {
+    if (!isHoverCapable()) return
     tooltipEl.innerHTML = html
     tooltipEl.style.display = 'block'
     positionTooltip(event)
   }
 
   function positionTooltip(event) {
+    if (!isHoverCapable()) return
     const rect = container.getBoundingClientRect()
     let x = event.clientX - rect.left + 18
     let y = event.clientY - rect.top + 18
@@ -612,6 +648,7 @@ const doctorants = await sanityClient.fetch(queries.allDoctorants).catch(() => [
         searchInput.value = ''
         searchInput.placeholder = 'Search'
       }
+      toggleClearBtn()
       render(criterion, null)
     }
     renderTitle()
@@ -630,6 +667,7 @@ const doctorants = await sanityClient.fetch(queries.allDoctorants).catch(() => [
       searchInput.value = ''
       searchInput.placeholder = 'Rechercher un profil'
     }
+    toggleClearBtn()
     renderGroupDetail(groupName, list)
     renderGroupPanel(groupName, list)
     renderTitle()
@@ -1000,8 +1038,25 @@ const doctorants = await sanityClient.fetch(queries.allDoctorants).catch(() => [
   //   filtre les profils de doctorants à l'intérieur de ce groupe, sans
   //   jamais revenir à la vue d'ensemble.
   var searchInput = document.getElementById('search-input')
+  var searchClearBtn = document.getElementById('search-clear')
+
+  function toggleClearBtn() {
+    if (!searchClearBtn || !searchInput) return
+    searchClearBtn.style.display = searchInput.value ? 'flex' : 'none'
+  }
+
+  if (searchClearBtn) {
+    searchClearBtn.addEventListener('click', function () {
+      searchInput.value = ''
+      searchInput.focus()
+      toggleClearBtn()
+      searchInput.dispatchEvent(new Event('input'))
+    })
+  }
+
   if (searchInput) {
     searchInput.addEventListener('input', function () {
+      toggleClearBtn()
       var term = this.value.toLowerCase().trim()
 
       if (view === 'overview') {
