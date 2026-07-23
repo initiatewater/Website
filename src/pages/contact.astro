@@ -18,7 +18,17 @@ import BaseLayout from '../layouts/BaseLayout.astro'
         id="contact-form" : ciblé par le JS ci-dessous
         novalidate : on gère la validation manuellement pour contrôler les messages
       -->
-      <form id="contact-form" class="flex flex-col gap-4 max-w-md" novalidate>
+      <!--
+        action Formspree : crée un compte sur formspree.io
+        → New Form → copie l'URL → remplace YOUR_FORM_ID
+        Gratuit : 50 soumissions/mois
+      -->
+      <form
+        id="contact-form"
+        action="https://formspree.io/f/maqrdrje"
+        method="POST"
+        class="flex flex-col gap-4 max-w-md"
+      >
 
         <input type="text"   name="firstname" placeholder="First name"    class="input-field" required autocomplete="given-name" />
         <input type="text"   name="lastname"  placeholder="Last name"     class="input-field" required autocomplete="family-name" />
@@ -57,47 +67,29 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     var form     = document.getElementById('contact-form')
     var btn      = document.getElementById('contact-submit')
     var feedback = document.getElementById('contact-feedback')
-
     if (!form) return
 
     form.addEventListener('submit', async function (e) {
       e.preventDefault()
-
-      // Validation basique
-      var firstname = form.firstname.value.trim()
-      var email     = form.email.value.trim()
-      var message   = form.message.value.trim()
-
-      if (!firstname || !email || !message) {
-        feedback.textContent = 'Veuillez remplir tous les champs obligatoires.'
-        feedback.className   = 'text-sm mt-1 text-red-500'
-        return
-      }
-
-      // État "envoi en cours"
-      btn.disabled         = true
-      btn.textContent      = 'Sending…'
-      feedback.className   = 'text-sm mt-1 hidden'
+      btn.disabled    = true
+      btn.textContent = 'Sending…'
 
       try {
-        var res = await fetch('/api/contact', {
-          method: 'POST',
-          body:   new FormData(form),
+        var res = await fetch(form.action, {
+          method:  'POST',
+          body:    new FormData(form),
+          headers: { 'Accept': 'application/json' },
         })
 
-        var json = await res.json()
-
-        if (res.ok && json.success) {
-          // Succès
+        if (res.ok) {
           feedback.textContent = 'Message envoyé ! Nous vous répondrons sous 48h.'
           feedback.className   = 'text-sm mt-1 text-i-teal'
           form.reset()
           btn.textContent = 'Send message'
         } else {
-          throw new Error(json.error || 'Erreur inconnue')
+          throw new Error()
         }
-
-      } catch (err) {
+      } catch {
         feedback.textContent = 'Une erreur est survenue. Veuillez réessayer.'
         feedback.className   = 'text-sm mt-1 text-red-500'
         btn.textContent      = 'Send message'

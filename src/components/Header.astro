@@ -1,34 +1,50 @@
 ---
 /*
-  Header.astro
-  Nav restructurée :
-  - "Home" pointe vers / (ancien About Us)
-  - "Content" est un dropdown avec Podcasts et Publications
-  - Plus de "About Us" ni "Resources" séparés
-
-  Dropdown desktop : clic (pas hover, plus fiable sur touch)
-  Dropdown mobile  : accordion dans le menu burger
+  Header reçoit les settings de visibilité depuis BaseLayout.
+  Plus de requête Sanity ici : BaseLayout fetch une seule fois et partage.
 */
 
-// Type pour les items simples et les items avec dropdown
+interface Props {
+  settings?: {
+    showNetwork?:      boolean
+    showPodcasts?:     boolean
+    showPublications?: boolean
+    showApply?:        boolean
+    showContact?:      boolean
+    showFaq?:          boolean
+  }
+}
+
+const { settings = {} } = Astro.props
+
+const {
+  showNetwork      = true,
+  showPodcasts     = true,
+  showPublications = true,
+  showApply        = true,
+  showContact      = true,
+  showFaq          = true,
+} = settings
+
 type SimpleItem   = { label: string; href: string; dropdown?: never }
-type DropdownItem = { label: string; href: null;   dropdown: { label: string; href: string }[] }
-type NavItem = SimpleItem | DropdownItem
+type DropdownItem = { label: string; href: null; dropdown: { label: string; href: string }[] }
+type NavItem      = SimpleItem | DropdownItem
+
+// Construit le dropdown Content uniquement avec les sous-pages visibles
+const contentDropdown = [
+  showPodcasts     && { label: 'Podcasts',     href: '/podcasts' },
+  showPublications && { label: 'Publications', href: '/publications' },
+].filter(Boolean) as { label: string; href: string }[]
 
 const navItems: NavItem[] = [
-  { label: 'Home',       href: '/' },
-  {
-    label: 'Content',
-    href: null,
-    dropdown: [
-      { label: 'Podcasts',     href: '/podcasts' },
-      { label: 'Publications', href: '/publications' },
-    ],
-  },
-  { label: 'Network',    href: '/network' },
-  { label: 'Apply',      href: '/apply' },
-  { label: 'Contact us', href: '/contact' },
-  { label: 'FAQ',        href: '/faq' },
+  { label: 'Home', href: '/' },
+  ...(contentDropdown.length > 0 ? [{
+    label: 'Content', href: null, dropdown: contentDropdown,
+  } as DropdownItem] : []),
+  ...(showNetwork ? [{ label: 'Network',    href: '/network'  } as SimpleItem] : []),
+  ...(showApply   ? [{ label: 'Apply',      href: '/apply'    } as SimpleItem] : []),
+  ...(showContact ? [{ label: 'Contact us', href: '/contact'  } as SimpleItem] : []),
+  ...(showFaq     ? [{ label: 'FAQ',        href: '/faq'      } as SimpleItem] : []),
 ]
 
 const currentPath = Astro.url.pathname
@@ -38,7 +54,6 @@ const isActive = (href: string): boolean =>
     ? currentPath === '/'
     : currentPath === href || currentPath.startsWith(href + '/')
 
-// Un dropdown est "actif" si une de ses sous-pages est la page courante
 const isDropdownActive = (item: DropdownItem): boolean =>
   item.dropdown.some(sub => isActive(sub.href))
 ---
@@ -54,7 +69,7 @@ const isDropdownActive = (item: DropdownItem): boolean =>
   <!-- LOGO -->
   <a href="/" class="flex-shrink-0" aria-label="Initiate – Retour à l'accueil">
     <img
-      src="/public/images/podcasts/INITIATE_logo_RVB.png"
+      src="/images/logo.svg"
       alt="Initiate"
       class="h-12 w-auto"
       onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='flex';"
