@@ -31,7 +31,22 @@
   *, *::before, *::after { box-sizing: border-box; }
 
   /* Scroll fluide sur tous les liens ancres (#section) */
-  html { scroll-behavior: smooth; }
+  html {
+    scroll-behavior: smooth;
+    /* Typographie fluide : s'agrandit proportionnellement sur grands écrans.
+       clamp(min, préféré, max) :
+       - 16px sur mobile
+       - 1.1vw sur desktop standard (~17.6px sur 1600px)
+       - plafonné à 22px sur 4K pour éviter le texte microscopique */
+    font-size: clamp(16px, 1.1vw, 22px);
+  }
+
+  /* Limite la largeur du contenu sur écrans ultra-larges */
+  body {
+    max-width: 2560px;
+    margin-left: auto;
+    margin-right: auto;
+  }
 
   body {
     font-family: var(--font-suze);

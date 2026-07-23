@@ -2,7 +2,43 @@
 import BaseLayout from '../layouts/BaseLayout.astro'
 import { sanityClient, queries } from '../lib/sanity'
 
-const publications = await sanityClient.fetch(queries.allPublications).catch(() => [])
+const rawPublications = await sanityClient.fetch(queries.allPublications).catch(() => [])
+
+/*
+  ⚠️ Champs "fictifs" en attendant Sanity ───────────────────────────────────
+  `title`, `author` et `image` existaient déjà. Les champs suivants sont
+  nouveaux pour cette fiche de détail et supposent une projection Sanity du
+  type { subtitle, description, date/publishedAt, pdf }. Tant qu'ils
+  n'existent pas dans la requête `queries.allPublications`, des valeurs de
+  repli sont utilisées pour que la page reste fonctionnelle — adapte les
+  accès ci-dessous dès que ces champs existent côté Sanity (ou remplace
+  directement les valeurs de repli par un chemin dans /public/pdfs/).
+*/
+function pickPdf(pub) {
+  if (pub.pdf) {
+    if (typeof pub.pdf === 'string') return pub.pdf
+    if (pub.pdf.asset && pub.pdf.asset.url) return pub.pdf.asset.url
+    if (pub.pdf.url) return pub.pdf.url
+  }
+  return pub.pdfUrl || null
+}
+function pickDate(pub) {
+  const raw = pub.date || pub.publishedAt || pub.publicationDate
+  if (!raw) return null
+  const d = new Date(raw)
+  if (isNaN(d.getTime())) return String(raw)
+  return d.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+const publications = (rawPublications || []).map((pub) => ({
+  title: pub.title,
+  author: pub.author,
+  image: pub.image || null,
+  subtitle: pub.subtitle || pub.journal || pub.category || '',
+  description: pub.description || pub.summary || pub.abstract || 'Résumé à venir.',
+  dateLabel: pickDate(pub),
+  pdfUrl: pickPdf(pub),
+}))
 ---
 
 <BaseLayout title="Publications" navHide={false}>
@@ -17,13 +53,48 @@ const publications = await sanityClient.fetch(queries.allPublications).catch(() 
     <!-- GAUCHE : fixe -->
     <div class="flex flex-col justify-center pr-8">
       <h1 class="text-i-navy mb-6">Publications</h1>
-      <p class="text-i-navy opacity-75 max-w-xs mb-8">
-        Varied collaborative academic content, including research articles,
-        case studies, and reflective essays on water sector topics.
-      </p>
+
+      <!-- Zone dynamique : intro générique, ou fiche de la publication sélectionnée -->
+      <div class="mb-8">
+        <div class="pub-empty">
+          <p class="text-i-navy opacity-75 max-w-xs">
+            Varied collaborative academic content, including research articles,
+            case studies, and reflective essays on water sector topics.
+          </p>
+        </div>
+
+        <div class="pub-card hidden max-w-xs">
+          <!-- Aperçu PDF (ou message temporaire si aucun fichier n'est encore renseigné) -->
+          <div class="pub-pdf-preview mb-4">
+            <iframe class="pub-pdf-frame hidden" title="Aperçu PDF" loading="lazy"></iframe>
+            <div class="pub-pdf-placeholder flex flex-col items-center justify-center text-center px-4">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" class="mb-2 opacity-50">
+                <path d="M6 2h9l5 5v15H6V2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+                <path d="M15 2v5h5" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+              </svg>
+              <span class="text-xs text-i-navy opacity-60">Aperçu PDF à venir</span>
+            </div>
+          </div>
+
+          <div class="flex gap-3 mb-5">
+            <a class="pub-download btn-outline btn-outline--sm" href="#" download>Télécharger</a>
+            <a class="pub-view btn-outline btn-outline--sm" href="#" target="_blank" rel="noopener">Voir</a>
+          </div>
+
+          <h2 class="pub-title text-i-navy font-bold text-xl leading-snug mb-1"></h2>
+          <p class="pub-subtitle text-i-teal text-sm font-semibold mb-3 hidden"></p>
+          <p class="pub-description text-i-navy opacity-75 text-sm leading-relaxed mb-4 pub-clamp"></p>
+
+          <div class="pub-meta text-sm text-i-navy opacity-60">
+            <p class="pub-author m-0"></p>
+            <p class="pub-date m-0"></p>
+          </div>
+        </div>
+      </div>
+
       <!--
-        Barre de recherche : filtre la liste en temps réel côté client.
-        L'input déclenche le JS en bas de page.
+        Barre de recherche : toujours visible et fonctionnelle, indépendamment
+        de la fiche affichée au-dessus. Filtre la liste en temps réel côté client.
       -->
       <div class="search-bar max-w-xs">
         <input
@@ -43,9 +114,10 @@ const publications = await sanityClient.fetch(queries.allPublications).catch(() 
     <!-- DROITE : liste scrollable -->
     <div class="no-scrollbar overflow-y-auto py-8">
       <div id="pub-list" class="divide-y divide-gray-100">
-        {publications.map((pub) => (
+        {publications.map((pub, i) => (
           <article
             class="pub-item flex gap-6 py-5 group cursor-pointer"
+            data-index={i}
             data-title={pub.title.toLowerCase()}
             data-author={pub.author.toLowerCase()}
           >
@@ -71,7 +143,7 @@ const publications = await sanityClient.fetch(queries.allPublications).catch(() 
       </div>
 
       <!-- Message si aucun résultat de recherche -->
-      <p id="pub-empty" class="hidden text-i-navy opacity-50 py-8 text-sm">
+      <p id="pub-empty-search" class="hidden text-i-navy opacity-50 py-8 text-sm">
         Aucune publication ne correspond à votre recherche.
       </p>
     </div>
@@ -80,10 +152,40 @@ const publications = await sanityClient.fetch(queries.allPublications).catch(() 
   <!-- MOBILE -->
   <div class="md:hidden px-6 py-10">
     <h1 class="text-i-navy mb-6">Publications</h1>
-    <p class="text-i-navy opacity-75 mb-6">
-      Varied collaborative academic content, including research articles,
-      case studies, and reflective essays on water sector topics.
-    </p>
+
+    <div class="mb-6">
+      <div class="pub-empty">
+        <p class="text-i-navy opacity-75">
+          Varied collaborative academic content, including research articles,
+          case studies, and reflective essays on water sector topics.
+        </p>
+      </div>
+
+      <div class="pub-card hidden">
+        <div class="pub-pdf-preview mb-4">
+          <iframe class="pub-pdf-frame hidden" title="Aperçu PDF" loading="lazy"></iframe>
+          <div class="pub-pdf-placeholder flex flex-col items-center justify-center text-center px-4">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" class="mb-2 opacity-50">
+              <path d="M6 2h9l5 5v15H6V2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+              <path d="M15 2v5h5" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+            </svg>
+            <span class="text-xs text-i-navy opacity-60">Aperçu PDF à venir</span>
+          </div>
+        </div>
+        <div class="flex gap-3 mb-4">
+          <a class="pub-download btn-outline btn-outline--sm" href="#" download>Télécharger</a>
+          <a class="pub-view btn-outline btn-outline--sm" href="#" target="_blank" rel="noopener">Voir</a>
+        </div>
+        <h2 class="pub-title text-i-navy font-bold text-lg leading-snug mb-1"></h2>
+        <p class="pub-subtitle text-i-teal text-sm font-semibold mb-2 hidden"></p>
+        <p class="pub-description text-i-navy opacity-75 text-sm leading-relaxed mb-3 pub-clamp"></p>
+        <div class="pub-meta text-sm text-i-navy opacity-60">
+          <p class="pub-author m-0"></p>
+          <p class="pub-date m-0"></p>
+        </div>
+      </div>
+    </div>
+
     <div class="search-bar mb-8">
       <input type="text" id="pub-search-mobile" placeholder="Search a publication" autocomplete="off" />
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="text-gray-400 flex-shrink-0">
@@ -92,9 +194,10 @@ const publications = await sanityClient.fetch(queries.allPublications).catch(() 
       </svg>
     </div>
     <div id="pub-list-mobile" class="divide-y divide-gray-100">
-      {publications.map((pub) => (
+      {publications.map((pub, i) => (
         <article
           class="pub-item-mobile flex gap-4 py-4"
+          data-index={i}
           data-title={pub.title.toLowerCase()}
           data-author={pub.author.toLowerCase()}
         >
@@ -116,9 +219,9 @@ const publications = await sanityClient.fetch(queries.allPublications).catch(() 
 
 </BaseLayout>
 
-<script is:inline>
+<script define:vars={{ publications }} is:inline>
   (function () {
-    // Fonction générique de filtre : s'applique à desktop et mobile
+    // ── RECHERCHE (comportement inchangé) ─────────────────────────────────
     function setupSearch(inputId, itemSelector, emptyId) {
       var input = document.getElementById(inputId)
       var empty = emptyId ? document.getElementById(emptyId) : null
@@ -141,12 +244,137 @@ const publications = await sanityClient.fetch(queries.allPublications).catch(() 
       })
     }
 
-    setupSearch('pub-search',        '.pub-item',        'pub-empty')
+    setupSearch('pub-search',        '.pub-item',        'pub-empty-search')
     setupSearch('pub-search-mobile', '.pub-item-mobile', null)
+
+    // ── FICHE DE DÉTAIL (nouveau) ─────────────────────────────────────────
+    var emptyEls       = document.querySelectorAll('.pub-empty')
+    var cardEls        = document.querySelectorAll('.pub-card')
+    var frameEls        = document.querySelectorAll('.pub-pdf-frame')
+    var placeholderEls  = document.querySelectorAll('.pub-pdf-placeholder')
+    var downloadEls     = document.querySelectorAll('.pub-download')
+    var viewEls         = document.querySelectorAll('.pub-view')
+    var titleEls        = document.querySelectorAll('.pub-title')
+    var subtitleEls     = document.querySelectorAll('.pub-subtitle')
+    var descEls         = document.querySelectorAll('.pub-description')
+    var authorEls       = document.querySelectorAll('.pub-author')
+    var dateEls         = document.querySelectorAll('.pub-date')
+    var items           = document.querySelectorAll('.pub-item, .pub-item-mobile')
+
+    function selectPublication(idx) {
+      var pub = publications[idx]
+      if (!pub) return
+
+      emptyEls.forEach(function (el) { el.classList.add('hidden') })
+      cardEls.forEach(function (el) { el.classList.remove('hidden') })
+
+      titleEls.forEach(function (el) { el.textContent = pub.title })
+      descEls.forEach(function (el) { el.textContent = pub.description })
+      authorEls.forEach(function (el) { el.textContent = pub.author })
+
+      subtitleEls.forEach(function (el) {
+        if (pub.subtitle) {
+          el.textContent = pub.subtitle
+          el.classList.remove('hidden')
+        } else {
+          el.classList.add('hidden')
+        }
+      })
+
+      dateEls.forEach(function (el) {
+        el.textContent = pub.dateLabel || ''
+        el.style.display = pub.dateLabel ? '' : 'none'
+      })
+
+      if (pub.pdfUrl) {
+        frameEls.forEach(function (el) { el.src = pub.pdfUrl; el.classList.remove('hidden') })
+        placeholderEls.forEach(function (el) { el.classList.add('hidden') })
+        downloadEls.forEach(function (el) {
+          el.href = pub.pdfUrl
+          el.removeAttribute('aria-disabled')
+          el.classList.remove('btn-outline--disabled')
+        })
+        viewEls.forEach(function (el) {
+          el.href = pub.pdfUrl
+          el.removeAttribute('aria-disabled')
+          el.classList.remove('btn-outline--disabled')
+        })
+      } else {
+        frameEls.forEach(function (el) { el.classList.add('hidden'); el.removeAttribute('src') })
+        placeholderEls.forEach(function (el) { el.classList.remove('hidden') })
+        // Solution temporaire tant qu'aucun PDF n'est renseigné : boutons désactivés
+        downloadEls.forEach(function (el) {
+          el.removeAttribute('href')
+          el.setAttribute('aria-disabled', 'true')
+          el.classList.add('btn-outline--disabled')
+        })
+        viewEls.forEach(function (el) {
+          el.removeAttribute('href')
+          el.setAttribute('aria-disabled', 'true')
+          el.classList.add('btn-outline--disabled')
+        })
+      }
+
+      items.forEach(function (it) {
+        it.classList.toggle('pub-item--active', Number(it.dataset.index) === idx)
+      })
+    }
+
+    items.forEach(function (item) {
+      item.addEventListener('click', function () {
+        selectPublication(Number(item.dataset.index))
+      })
+    })
   })()
 </script>
 
 <style>
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+
+  .pub-clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .pub-item--active,
+  .pub-item-mobile.pub-item--active {
+    background: #f0fdfc;
+  }
+
+  /* Cadre d'aperçu PDF (ou message temporaire tant qu'aucun fichier n'est fourni) */
+  .pub-pdf-preview {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    max-height: 220px;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: #f9fafb;
+  }
+  .pub-pdf-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+  .pub-pdf-placeholder {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* Petits boutons pour Télécharger / Voir, à côté l'un de l'autre */
+  .btn-outline--sm {
+    padding: 0.4rem 0.9rem;
+    font-size: 0.8rem;
+  }
+  .btn-outline--disabled {
+    opacity: 0.4;
+    pointer-events: none;
+    cursor: not-allowed;
+  }
 </style>

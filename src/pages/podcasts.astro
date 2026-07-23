@@ -1,8 +1,72 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
+import { sanityClient, queries } from '../lib/sanity'
+
+/*
+  ⚠️ Données "fictives" en attendant Sanity ─────────────────────────────────
+  Cette page suppose une future requête `queries.allPodcasts` renvoyant des
+  objets du type { title, subtitle, description, image, audio }.
+  Tant que cette requête n'existe pas côté `lib/sanity`, on retombe sur un
+  jeu de données fictif qui réutilise les 12 images placeholder déjà
+  présentes dans /public/images/podcasts. Le jour où `queries.allPodcasts`
+  existe, cette page l'utilisera automatiquement — rien d'autre à changer
+  ici (affichage, lecteur audio, etc.).
+
+  Champ audio attendu : `audio` (fichier Sanity) ou `audioUrl` (chaîne).
+  En attendant, tu peux déposer des fichiers .mp3 dans /public/audio/ et
+  les référencer ci-dessous (ex: '/audio/episode-1.mp3').
+*/
+let rawPodcasts = []
+try {
+  if (queries.allPodcasts) {
+    rawPodcasts = await sanityClient.fetch(queries.allPodcasts)
+  }
+} catch (e) {
+  rawPodcasts = []
+}
+
+const FICTIONAL_PODCASTS = Array.from({ length: 12 }).map((_, i) => ({
+  title: `Épisode ${i + 1}`,
+  subtitle: `Invité fictif ${i + 1} — Sujet à définir`,
+  description:
+    "Description à venir : remplace ce texte par le résumé de l'épisode une fois le contenu branché sur Sanity.",
+  image: `/images/podcasts/placeholder-${i + 1}.jpg`,
+  audio: null, // ex : '/audio/episode-1.mp3'
+}))
+
+const source = rawPodcasts && rawPodcasts.length > 0 ? rawPodcasts : FICTIONAL_PODCASTS
+
+function pickImage(p, i) {
+  if (p.image) {
+    if (typeof p.image === 'string') return p.image
+    if (p.image.asset && p.image.asset.url) return p.image.asset.url
+    if (p.image.url) return p.image.url
+  }
+  return `/images/podcasts/placeholder-${(i % 12) + 1}.jpg`
+}
+function pickAudio(p) {
+  if (p.audio) {
+    if (typeof p.audio === 'string') return p.audio
+    if (p.audio.asset && p.audio.asset.url) return p.audio.asset.url
+    if (p.audio.url) return p.audio.url
+  }
+  return p.audioUrl || null
+}
+
+// Données finales, prêtes à être affichées et passées au script client
+const podcasts = source.map((p, i) => ({
+  title: p.title || `Épisode ${i + 1}`,
+  subtitle: p.subtitle || p.guest || '',
+  description: p.description || p.summary || 'Description à venir.',
+  image: pickImage(p, i),
+  audioUrl: pickAudio(p),
+}))
 ---
 
 <BaseLayout title="Podcasts" navHide={false}>
+
+  <!-- Lecteur audio unique, partagé par toutes les vignettes -->
+  <audio id="podcast-audio" preload="none" class="hidden"></audio>
 
   <!--
     Layout custom (pas page-grid) :
@@ -18,48 +82,75 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     gap: 2rem;
   ">
 
-    <!-- GAUCHE : fixe -->
+    <!-- GAUCHE : fixe. Bascule entre l'intro générique et la fiche du podcast sélectionné -->
     <div class="flex flex-col justify-center pr-8">
       <h1 class="text-i-navy mb-6">Podcasts</h1>
-      <p class="text-i-navy opacity-75 max-w-xs mb-10">
-        Are you a PhD candidate working on water-related challenges?
-        Do you want to connect with peers, experts, and mentors from
-        around the world to develop innovative solutions for global
-        water sustainability?
-      </p>
-      <a href="#" class="btn-outline">
-        Listen to the podcast
-        <svg width="28" height="14" viewBox="0 0 28 14" fill="none" aria-hidden="true">
-          <rect x="0"  y="4" width="2" height="6"  rx="1" fill="currentColor"/>
-          <rect x="4"  y="2" width="2" height="10" rx="1" fill="currentColor"/>
-          <rect x="8"  y="0" width="2" height="14" rx="1" fill="currentColor"/>
-          <rect x="12" y="3" width="2" height="8"  rx="1" fill="currentColor"/>
-          <rect x="16" y="5" width="2" height="4"  rx="1" fill="currentColor"/>
-        </svg>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-          <circle cx="7" cy="7" r="6.5" stroke="currentColor" stroke-width="1.2"/>
-          <polygon points="5.5,4 10,7 5.5,10" fill="currentColor"/>
-        </svg>
-      </a>
+
+      <!-- État par défaut : aucun podcast sélectionné -->
+      <div class="podcast-empty">
+        <p class="text-i-navy opacity-75 max-w-xs mb-10">
+          Are you a PhD candidate working on water-related challenges?
+          Do you want to connect with peers, experts, and mentors from
+          around the world to develop innovative solutions for global
+          water sustainability?
+        </p>
+      </div>
+
+      <!-- Fiche du podcast sélectionné (masquée par défaut) -->
+      <div class="podcast-card hidden max-w-xs">
+        <img class="podcast-image w-full aspect-video object-cover rounded-md mb-5" src="" alt="" />
+        <h2 class="podcast-title text-i-navy font-bold text-xl leading-snug mb-1"></h2>
+        <p class="podcast-subtitle text-i-teal text-sm font-semibold mb-3"></p>
+        <p class="podcast-description text-i-navy opacity-75 text-sm leading-relaxed mb-6 podcast-clamp"></p>
+
+        <button type="button" class="btn-outline podcast-play-btn">
+          <span class="podcast-play-label">Listen to the podcast</span>
+
+          <!-- Barres animées : hauteur/position pilotées par JS selon le volume -->
+          <svg width="20" height="14" viewBox="0 0 20 14" fill="none" aria-hidden="true" class="podcast-bars">
+            <rect class="bar" x="0"  y="8" width="2" height="6"  rx="1" fill="currentColor"/>
+            <rect class="bar" x="4"  y="4" width="2" height="10" rx="1" fill="currentColor"/>
+            <rect class="bar" x="8"  y="0" width="2" height="14" rx="1" fill="currentColor"/>
+            <rect class="bar" x="12" y="4" width="2" height="10" rx="1" fill="currentColor"/>
+            <rect class="bar" x="16" y="8" width="2" height="6"  rx="1" fill="currentColor"/>
+          </svg>
+
+          <!-- Icône play / pause -->
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" class="podcast-play-icon">
+            <circle cx="7" cy="7" r="6.5" stroke="currentColor" stroke-width="1.2"/>
+            <polygon class="icon-play" points="5.5,4 10,7 5.5,10" fill="currentColor"/>
+            <g class="icon-pause">
+              <rect x="4.7" y="4" width="1.6" height="6" rx="0.5" fill="currentColor"/>
+              <rect x="7.7" y="4" width="1.6" height="6" rx="0.5" fill="currentColor"/>
+            </g>
+          </svg>
+        </button>
+        <p class="podcast-audio-error hidden text-sm text-red-500 mt-2">
+          Ce fichier audio n'est pas encore disponible.
+        </p>
+      </div>
     </div>
 
     <!--
       DROITE : conteneur scrollable.
-      overflow-y: auto → scrollable.
-      no-scrollbar → scrollbar invisible (voir <style> en bas).
-      padding vertical : respiration haut/bas dans le flux scrollable.
+      Chaque vignette est cliquable et met à jour le panneau de gauche.
     -->
     <div class="no-scrollbar overflow-y-auto py-8">
       <div class="grid grid-cols-3 lg:grid-cols-4 gap-0.5">
-        {Array.from({ length: 24 }).map((_, i) => (
-          <div class="aspect-square overflow-hidden bg-i-soft/30">
+        {podcasts.map((p, i) => (
+          <button
+            type="button"
+            class="podcast-thumb aspect-square overflow-hidden bg-i-soft/30 relative"
+            data-index={i}
+            aria-label={`Écouter ${p.title}`}
+          >
             <img
-              src={`/images/podcasts/placeholder-${(i % 12) + 1}.jpg`}
-              alt={`Podcast ${i + 1}`}
+              src={p.image}
+              alt={p.title}
               class="w-full h-full object-cover"
               onerror="this.style.display='none'"
             />
-          </div>
+          </button>
         ))}
       </div>
     </div>
@@ -68,31 +159,260 @@ import BaseLayout from '../layouts/BaseLayout.astro'
   <!-- VERSION MOBILE : layout normal, tout scroll avec la page -->
   <div class="md:hidden px-6 py-10">
     <h1 class="text-i-navy mb-6">Podcasts</h1>
-    <p class="text-i-navy opacity-75 mb-8">
-      Are you a PhD candidate working on water-related challenges?
-      Do you want to connect with peers, experts, and mentors from
-      around the world to develop innovative solutions for global
-      water sustainability?
-    </p>
-    <a href="#" class="btn-outline mb-8">Listen to the podcast</a>
+
+    <div class="podcast-empty">
+      <p class="text-i-navy opacity-75 mb-8">
+        Are you a PhD candidate working on water-related challenges?
+        Do you want to connect with peers, experts, and mentors from
+        around the world to develop innovative solutions for global
+        water sustainability?
+      </p>
+    </div>
+
+    <div class="podcast-card hidden mb-8">
+      <img class="podcast-image w-full aspect-video object-cover rounded-md mb-4" src="" alt="" />
+      <h2 class="podcast-title text-i-navy font-bold text-lg leading-snug mb-1"></h2>
+      <p class="podcast-subtitle text-i-teal text-sm font-semibold mb-2"></p>
+      <p class="podcast-description text-i-navy opacity-75 text-sm leading-relaxed mb-4 podcast-clamp"></p>
+
+      <button type="button" class="btn-outline podcast-play-btn">
+        <span class="podcast-play-label">Listen to the podcast</span>
+        <svg width="20" height="14" viewBox="0 0 20 14" fill="none" aria-hidden="true" class="podcast-bars">
+          <rect class="bar" x="0"  y="8" width="2" height="6"  rx="1" fill="currentColor"/>
+          <rect class="bar" x="4"  y="4" width="2" height="10" rx="1" fill="currentColor"/>
+          <rect class="bar" x="8"  y="0" width="2" height="14" rx="1" fill="currentColor"/>
+          <rect class="bar" x="12" y="4" width="2" height="10" rx="1" fill="currentColor"/>
+          <rect class="bar" x="16" y="8" width="2" height="6"  rx="1" fill="currentColor"/>
+        </svg>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" class="podcast-play-icon">
+          <circle cx="7" cy="7" r="6.5" stroke="currentColor" stroke-width="1.2"/>
+          <polygon class="icon-play" points="5.5,4 10,7 5.5,10" fill="currentColor"/>
+          <g class="icon-pause">
+            <rect x="4.7" y="4" width="1.6" height="6" rx="0.5" fill="currentColor"/>
+            <rect x="7.7" y="4" width="1.6" height="6" rx="0.5" fill="currentColor"/>
+          </g>
+        </svg>
+      </button>
+      <p class="podcast-audio-error hidden text-sm text-red-500 mt-2">
+        Ce fichier audio n'est pas encore disponible.
+      </p>
+    </div>
+
     <div class="grid grid-cols-2 gap-0.5 mt-8">
-      {Array.from({ length: 12 }).map((_, i) => (
-        <div class="aspect-square overflow-hidden bg-i-soft/30">
+      {podcasts.map((p, i) => (
+        <button
+          type="button"
+          class="podcast-thumb aspect-square overflow-hidden bg-i-soft/30 relative"
+          data-index={i}
+          aria-label={`Écouter ${p.title}`}
+        >
           <img
-            src={`/images/podcasts/placeholder-${(i % 12) + 1}.jpg`}
-            alt={`Podcast ${i + 1}`}
+            src={p.image}
+            alt={p.title}
             class="w-full h-full object-cover"
             onerror="this.style.display='none'"
           />
-        </div>
+        </button>
       ))}
     </div>
   </div>
 
 </BaseLayout>
 
+<script define:vars={{ podcasts }} is:inline>
+  // @ts-nocheck
+
+  // ── ÉLÉMENTS PARTAGÉS ─────────────────────────────────────────────────
+  const audioEl      = document.getElementById('podcast-audio')
+  const emptyEls      = document.querySelectorAll('.podcast-empty')
+  const cardEls       = document.querySelectorAll('.podcast-card')
+  const imageEls      = document.querySelectorAll('.podcast-image')
+  const titleEls      = document.querySelectorAll('.podcast-title')
+  const subtitleEls   = document.querySelectorAll('.podcast-subtitle')
+  const descEls       = document.querySelectorAll('.podcast-description')
+  const playBtns      = document.querySelectorAll('.podcast-play-btn')
+  const playLabels    = document.querySelectorAll('.podcast-play-label')
+  const barsGroups    = document.querySelectorAll('.podcast-bars')
+  const errorEls      = document.querySelectorAll('.podcast-audio-error')
+  const thumbButtons  = document.querySelectorAll('.podcast-thumb')
+
+  let currentIndex = -1
+  let audioCtx = null
+  let analyser = null
+  let sourceNode = null
+  let rafId = null
+  const freqData = new Uint8Array(32)
+
+  // Hauteurs max (px) des 5 barres, dans le viewBox 20x14 (repère "bas")
+  const BAR_MAX = [6, 10, 14, 10, 6]
+  const BASELINE = 14
+
+  // ── SÉLECTION D'UN PODCAST ───────────────────────────────────────────
+  function selectPodcast(idx) {
+    const p = podcasts[idx]
+    if (!p) return
+
+    // On coupe toute lecture en cours avant de changer de piste
+    stopVisualizer(true)
+    audioEl.pause()
+    audioEl.removeAttribute('src')
+    audioEl.load()
+    setPlayingState(false)
+    errorEls.forEach(el => el.classList.add('hidden'))
+
+    currentIndex = idx
+
+    emptyEls.forEach(el => el.classList.add('hidden'))
+    cardEls.forEach(el => el.classList.remove('hidden'))
+    imageEls.forEach(el => { el.src = p.image; el.alt = p.title })
+    titleEls.forEach(el => { el.textContent = p.title })
+    subtitleEls.forEach(el => { el.textContent = p.subtitle })
+    descEls.forEach(el => { el.textContent = p.description })
+
+    thumbButtons.forEach(t => {
+      t.classList.toggle('podcast-thumb--active', Number(t.dataset.index) === idx)
+    })
+
+    if (p.audioUrl) {
+      audioEl.src = p.audioUrl
+    }
+  }
+
+  thumbButtons.forEach(btn => {
+    btn.addEventListener('click', () => selectPodcast(Number(btn.dataset.index)))
+  })
+
+  // ── LECTEUR AUDIO ─────────────────────────────────────────────────────
+  function ensureAudioGraph() {
+    if (audioCtx) return
+    const Ctx = window.AudioContext || window.webkitAudioContext
+    if (!Ctx) return // navigateur trop ancien : pas de visualiseur, mais la lecture simple fonctionne
+    audioCtx = new Ctx()
+    sourceNode = audioCtx.createMediaElementSource(audioEl)
+    analyser = audioCtx.createAnalyser()
+    analyser.fftSize = 64
+    sourceNode.connect(analyser)
+    analyser.connect(audioCtx.destination)
+  }
+
+  function setPlayingState(isPlaying) {
+    playBtns.forEach(b => b.classList.toggle('is-playing', isPlaying))
+    playLabels.forEach(l => { l.textContent = isPlaying ? 'Pause the podcast' : 'Listen to the podcast' })
+    if (isPlaying) startVisualizer()
+    else stopVisualizer(true)
+  }
+
+  function startVisualizer() {
+    if (rafId || !analyser) return
+    const loop = () => {
+      analyser.getByteFrequencyData(freqData)
+      const chunk = Math.floor(freqData.length / BAR_MAX.length)
+      barsGroups.forEach(svg => {
+        const bars = svg.querySelectorAll('.bar')
+        bars.forEach((rect, i) => {
+          let sum = 0
+          for (let k = i * chunk; k < i * chunk + chunk; k++) sum += freqData[k]
+          const avg = sum / chunk / 255 // 0 → 1
+          const h = Math.max(3, BAR_MAX[i] * (0.35 + avg * 0.9))
+          rect.setAttribute('height', h.toFixed(1))
+          rect.setAttribute('y', (BASELINE - h).toFixed(1))
+        })
+      })
+      rafId = requestAnimationFrame(loop)
+    }
+    loop()
+  }
+
+  function stopVisualizer(reset) {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null }
+    if (reset) {
+      barsGroups.forEach(svg => {
+        svg.querySelectorAll('.bar').forEach((rect, i) => {
+          const h = BAR_MAX[i] * 0.3
+          rect.setAttribute('height', h.toFixed(1))
+          rect.setAttribute('y', (BASELINE - h).toFixed(1))
+        })
+      })
+    }
+  }
+
+  playBtns.forEach(btn => {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault()
+      if (currentIndex === -1) return
+
+      if (!audioEl.getAttribute('src')) {
+        errorEls.forEach(el => el.classList.remove('hidden'))
+        return
+      }
+
+      ensureAudioGraph()
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume()
+
+      if (audioEl.paused) {
+        audioEl.play()
+          .then(() => setPlayingState(true))
+          .catch(() => {
+            errorEls.forEach(el => el.classList.remove('hidden'))
+            setPlayingState(false)
+          })
+      } else {
+        audioEl.pause()
+        setPlayingState(false)
+      }
+    })
+  })
+
+  audioEl.addEventListener('ended', () => setPlayingState(false))
+  audioEl.addEventListener('error', () => {
+    if (currentIndex !== -1) errorEls.forEach(el => el.classList.remove('hidden'))
+    setPlayingState(false)
+  })
+</script>
+
 <style>
   /* Masque le scrollbar sur tous les navigateurs */
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+
+  /* Description : tronquée pour ne jamais déborder de la colonne fixe */
+  .podcast-clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Vignette cliquable : léger effet au survol + anneau sur la sélection active */
+  .podcast-thumb {
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: block;
+  }
+  .podcast-thumb img {
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+  .podcast-thumb:hover img {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+  .podcast-thumb--active {
+    outline: 3px solid #2BA8A4;
+    outline-offset: -3px;
+  }
+
+  /* Icône play / pause : une seule des deux visible selon l'état */
+  .podcast-play-btn .icon-pause { display: none; }
+  .podcast-play-btn.is-playing .icon-play { display: none; }
+  .podcast-play-btn.is-playing .icon-pause { display: inline; }
+
+  /* Petite pulsation du bouton pendant la lecture, pour renforcer le retour visuel */
+  .podcast-play-btn.is-playing {
+    box-shadow: 0 0 0 3px rgba(43, 168, 164, 0.15);
+  }
+
+  .podcast-bars .bar {
+    transition: height 0.05s linear, y 0.05s linear;
+  }
 </style>
