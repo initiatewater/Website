@@ -1,0 +1,202 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><!-- Titre onglet navigateur : "About Us | Initiate", "FAQ | Initiate"… --><title>About Us | Initiate</title><!-- Résumé pour les moteurs de recherche (160 caractères max recommandés) --><meta name="description" content="Initiate connects PhD candidates working on freshwater challenges worldwide."><!--
+    Préchargement de Suze-Regular : le navigateur charge la police en priorité,
+    ce qui réduit le délai avant affichage du bon rendu typographique.
+    crossorigin est obligatoire pour les polices (contrainte CORS des navigateurs).
+  --><link rel="preload" href="/fonts/Suze-Regular.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="/_astro/BaseLayout.8Sj1QE-L.css"></head><!--
+  class:list : syntaxe Astro pour les classes conditionnelles.
+  Si formPage=true : ajoute bg-i-cream (#F5F7FA).
+  Sinon : fond blanc par défaut (défini dans global.css body).
+--><body data-nav-hide="true"><!-- Header : commun à toutes les pages, géré dans Header.astro --><!--
+  sticky top-0    : la navbar reste visible en haut même en scrollant
+  transition-transform duration-300 : animation fluide pour le hide/show
+  Le JS ci-dessous ajoute .nav-hidden (translateY -100%) quand on scrolle
+  vers le bas, et le retire quand on remonte.
+--><header class="sticky top-0 z-50 bg-white flex items-center justify-between px-12 py-4" id="main-header" style="transition: transform 0.35s ease;"><!-- LOGO --><a href="/" class="flex-shrink-0" aria-label="Initiate – Retour à l'accueil"><img src="/public/images/podcasts/INITIATE_logo_RVB.png" alt="Initiate" class="h-12 w-auto" onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='flex';"><span id="logo-fallback" class="hidden items-center gap-2 text-i-navy font-bold text-lg" aria-hidden="true"><svg width="32" height="32" viewBox="0 0 36 36" fill="none"><circle cx="18" cy="6" r="4" fill="#2BA8A4"></circle><circle cx="28" cy="12" r="3.5" fill="#2BA8A4" opacity=".8"></circle><circle cx="30" cy="23" r="3" fill="#2BA8A4" opacity=".6"></circle><circle cx="22" cy="30" r="2.5" fill="#2BA8A4" opacity=".5"></circle><circle cx="12" cy="30" r="2" fill="#9DC55A" opacity=".7"></circle><circle cx="6" cy="23" r="2.5" fill="#2BA8A4" opacity=".4"></circle><circle cx="8" cy="12" r="3" fill="#2BA8A4" opacity=".6"></circle></svg>initiate</span></a><!-- NAV DESKTOP --><nav class="hidden md:flex items-center" aria-label="Navigation principale"><ul class="flex items-center list-none m-0 p-0 gap-0"><li class="relative"><a href="/" class="px-3 py-1 text-sm transition-colors duration-200 text-i-navy hover:text-i-teal">Home</a></li><li aria-hidden="true"><span class="text-gray-300 text-xs select-none px-0.5">·</span></li><li class="relative"><div class="dropdown-wrapper"><button class="dropdown-btn flex items-center gap-1 px-3 py-1 text-sm transition-colors duration-200 bg-transparent border-0 cursor-pointer text-i-navy hover:text-i-teal" aria-haspopup="true" aria-expanded="false">Content<!-- Flèche bas : pivote à 180° quand ouvert --><svg class="dropdown-chevron transition-transform duration-200" width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></button><!--
+                  Sous-menu : caché par défaut, révélé par JS au clic.
+                  absolute top-full : juste sous le bouton parent.
+                  min-w-[160px] : largeur minimale pour ne pas tronquer les labels.
+                --><ul class="dropdown-menu hidden absolute top-full left-0 mt-1 min-w-[160px] bg-white border border-gray-100 shadow-md rounded-md py-1 list-none m-0"><li><a href="/podcasts" class="block px-4 py-2 text-sm transition-colors duration-150 text-i-navy hover:text-i-teal hover:bg-gray-50">Podcasts</a></li><li><a href="/publications" class="block px-4 py-2 text-sm transition-colors duration-150 text-i-navy hover:text-i-teal hover:bg-gray-50">Publications</a></li></ul></div></li><li aria-hidden="true"><span class="text-gray-300 text-xs select-none px-0.5">·</span></li><li class="relative"><a href="/network" class="px-3 py-1 text-sm transition-colors duration-200 text-i-navy hover:text-i-teal">Network</a></li><li aria-hidden="true"><span class="text-gray-300 text-xs select-none px-0.5">·</span></li><li class="relative"><a href="/apply" class="px-3 py-1 text-sm transition-colors duration-200 text-i-navy hover:text-i-teal">Apply</a></li><li aria-hidden="true"><span class="text-gray-300 text-xs select-none px-0.5">·</span></li><li class="relative"><a href="/contact" class="px-3 py-1 text-sm transition-colors duration-200 text-i-navy hover:text-i-teal">Contact us</a></li><li aria-hidden="true"><span class="text-gray-300 text-xs select-none px-0.5">·</span></li><li class="relative"><a href="/faq" class="px-3 py-1 text-sm transition-colors duration-200 text-i-navy hover:text-i-teal">FAQ</a></li></ul></nav><!-- BOUTON BURGER (MOBILE) --><button id="burger-btn" class="md:hidden flex flex-col gap-1.5 p-2 -mr-2 bg-transparent border-0 cursor-pointer" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="mobile-nav"><span id="bar1" class="block w-6 h-0.5 bg-i-navy" style="transition: transform 0.3s ease, opacity 0.3s ease;"></span><span id="bar2" class="block w-6 h-0.5 bg-i-navy" style="transition: opacity 0.3s ease;"></span><span id="bar3" class="block w-6 h-0.5 bg-i-navy" style="transition: transform 0.3s ease;"></span></button><!-- MENU MOBILE --><nav id="mobile-nav" class="absolute top-full left-0 right-0 bg-white border-t border-gray-100 shadow-md hidden" aria-label="Navigation mobile"><ul class="list-none m-0 py-3 px-0"><li><a href="/" class="block px-8 py-3 text-base transition-colors duration-150 text-i-navy hover:text-i-teal hover:bg-gray-50">Home</a></li><li><div class="mobile-accordion"><button class="mobile-accordion-btn w-full flex items-center justify-between px-8 py-3 text-base bg-transparent border-0 cursor-pointer transition-colors duration-150 text-i-navy">Content<svg class="mobile-accordion-chevron transition-transform duration-200" width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></button><!--
+                Sous-items mobile : indentés à gauche (pl-12) pour
+                marquer visuellement la hiérarchie sans ligne ou icône.
+              --><ul class="mobile-accordion-menu hidden list-none m-0 p-0 bg-gray-50"><li><a href="/podcasts" class="block pl-12 pr-8 py-2.5 text-sm transition-colors duration-150 text-i-navy hover:text-i-teal">Podcasts</a></li><li><a href="/publications" class="block pl-12 pr-8 py-2.5 text-sm transition-colors duration-150 text-i-navy hover:text-i-teal">Publications</a></li></ul></div></li><li><a href="/network" class="block px-8 py-3 text-base transition-colors duration-150 text-i-navy hover:text-i-teal hover:bg-gray-50">Network</a></li><li><a href="/apply" class="block px-8 py-3 text-base transition-colors duration-150 text-i-navy hover:text-i-teal hover:bg-gray-50">Apply</a></li><li><a href="/contact" class="block px-8 py-3 text-base transition-colors duration-150 text-i-navy hover:text-i-teal hover:bg-gray-50">Contact us</a></li><li><a href="/faq" class="block px-8 py-3 text-base transition-colors duration-150 text-i-navy hover:text-i-teal hover:bg-gray-50">FAQ</a></li></ul></nav></header><script>
+  (function () {
+
+    /* ── BURGER MOBILE ─────────────────────────────────────── */
+    const btn  = document.getElementById('burger-btn')
+    const nav  = document.getElementById('mobile-nav')
+    const bar1 = document.getElementById('bar1')
+    const bar2 = document.getElementById('bar2')
+    const bar3 = document.getElementById('bar3')
+
+    let burgerOpen = false
+
+    function openBurger() {
+      burgerOpen = true
+      nav.classList.remove('hidden')
+      btn.setAttribute('aria-expanded', 'true')
+      btn.setAttribute('aria-label', 'Fermer le menu')
+      bar1.style.transform = 'translateY(8px) rotate(45deg)'
+      bar2.style.opacity   = '0'
+      bar3.style.transform = 'translateY(-8px) rotate(-45deg)'
+    }
+
+    function closeBurger() {
+      burgerOpen = false
+      nav.classList.add('hidden')
+      btn.setAttribute('aria-expanded', 'false')
+      btn.setAttribute('aria-label', 'Ouvrir le menu')
+      bar1.style.transform = ''
+      bar2.style.opacity   = '1'
+      bar3.style.transform = ''
+    }
+
+    btn && btn.addEventListener('click', function () {
+      burgerOpen ? closeBurger() : openBurger()
+    })
+
+    /* ── DROPDOWN DESKTOP ──────────────────────────────────────
+       Clic sur le bouton "Content" : ouvre/ferme le sous-menu.
+       Clic ailleurs sur la page : ferme tous les dropdowns.
+    ─────────────────────────────────────────────────────────── */
+    document.querySelectorAll('.dropdown-wrapper').forEach(function (wrapper) {
+      const dropBtn  = wrapper.querySelector('.dropdown-btn')
+      const dropMenu = wrapper.querySelector('.dropdown-menu')
+      const chevron  = wrapper.querySelector('.dropdown-chevron')
+
+      dropBtn && dropBtn.addEventListener('click', function (e) {
+        e.stopPropagation() // évite que le clic remonte et referme immédiatement
+
+        const isOpen = !dropMenu.classList.contains('hidden')
+
+        // Ferme tous les autres dropdowns avant d'ouvrir celui-ci
+        closeAllDropdowns()
+
+        if (!isOpen) {
+          dropMenu.classList.remove('hidden')
+          dropBtn.setAttribute('aria-expanded', 'true')
+          chevron && chevron.classList.add('rotate-180')
+        }
+      })
+    })
+
+    // Ferme les dropdowns au clic en dehors
+    document.addEventListener('click', closeAllDropdowns)
+
+    function closeAllDropdowns() {
+      document.querySelectorAll('.dropdown-wrapper').forEach(function (w) {
+        w.querySelector('.dropdown-menu')?.classList.add('hidden')
+        w.querySelector('.dropdown-btn')?.setAttribute('aria-expanded', 'false')
+        w.querySelector('.dropdown-chevron')?.classList.remove('rotate-180')
+      })
+    }
+
+    /* ── ACCORDION MOBILE ──────────────────────────────────────
+       Clic sur "Content" dans le menu burger : déplie les sous-items.
+    ─────────────────────────────────────────────────────────── */
+    document.querySelectorAll('.mobile-accordion').forEach(function (acc) {
+      const accBtn     = acc.querySelector('.mobile-accordion-btn')
+      const accMenu    = acc.querySelector('.mobile-accordion-menu')
+      const accChevron = acc.querySelector('.mobile-accordion-chevron')
+
+      accBtn && accBtn.addEventListener('click', function () {
+        const isOpen = !accMenu.classList.contains('hidden')
+        accMenu.classList.toggle('hidden', isOpen)
+        accChevron && accChevron.classList.toggle('rotate-180', !isOpen)
+      })
+    })
+
+    // Fermeture du burger au clic sur un lien simple du menu mobile
+    nav && nav.querySelectorAll('a').forEach(function (link) {
+      link.addEventListener('click', closeBurger)
+    })
+
+  })();
+
+  /* ── HIDE / SHOW NAVBAR AU SCROLL ─────────────────────────────
+    Activé uniquement si data-nav-hide="true" sur le <body>.
+    Mettre navHide={false} dans BaseLayout pour désactiver par page.
+
+    Timings asymétriques :
+    - Cacher  : 0.35s ease  (plus lent, moins intrusif)
+    - Montrer : 0.18s ease  (plus rapide, réactif)
+
+    Mouse-at-top : réapparition si souris < 20px du bord supérieur (PC).
+  ─────────────────────────────────────────────────────────────── */
+  (function () {
+    const header = document.getElementById('main-header')
+    if (!header) return
+
+    // Lit la variable de contrôle posée par BaseLayout
+    const hideEnabled = document.body.dataset.navHide === 'true'
+    if (!hideEnabled) return
+
+    let lastScroll = 0
+    let isHidden = false
+
+    function hideNav() {
+      if (isHidden) return
+      isHidden = true
+      header.style.transition = 'transform 0.35s ease'
+      header.style.transform = 'translateY(-100%)'
+    }
+
+    function showNav() {
+      if (!isHidden) return
+      isHidden = false
+      header.style.transition = 'transform 0.18s ease'
+      header.style.transform = 'translateY(0)'
+    }
+
+    // Scroll : cache vers le bas, montre vers le haut
+    window.addEventListener('scroll', function () {
+      const current = window.scrollY
+      if (current > lastScroll && current > 80) {
+        hideNav()
+      } else {
+        showNav()
+      }
+      lastScroll = current <= 0 ? 0 : current
+    }, { passive: true })
+
+    // Souris en haut de page → montre la navbar (PC uniquement)
+    document.addEventListener('mousemove', function (e) {
+      if (e.clientY < 20) showNav()
+    })
+  })()
+</script><!--
+    <slot /> : "trou" dans lequel Astro injecte le contenu de chaque page.
+    Tout ce qui est entre <BaseLayout>…</BaseLayout> dans une page
+    se retrouve ici au moment du build.
+  --><main><div class="page-grid"><!-- ══════════════════════════════════════════════════════════
+         COLONNE GAUCHE : texte
+         pr-16 sur desktop : espace entre le texte et la colonne visuelle
+    ══════════════════════════════════════════════════════════ --><div class="flex flex-col justify-center pr-0 md:pr-16"><!-- Titre principal --><h1 class="text-i-navy mb-6">The initiate<br>program</h1><!-- Corps de texte : opacity-75 pour le contraste doux observé dans les maquettes --><p class="text-i-navy opacity-75 max-w-xs mb-10">Are you a PhD candidate working on water-related challenges? Do you want to connect with peers, experts, and mentors from around the world to develop innovative solutions for global water sustainability?</p><!-- CTA : composant .btn-outline défini dans global.css --><a href="/apply" class="btn-outline">Candidater ici</a></div><!-- ══════════════════════════════════════════════════════════
+         COLONNE DROITE : bulles statistiques + drop shapes
+
+         DESKTOP (md:block) : positionnement absolu dans un conteneur
+         de hauteur fixe. Les drop shapes et bulles se superposent librement.
+
+         MOBILE (flex) : grille flex simple, sans positionnement absolu.
+         Les drop shapes disparaissent sur mobile (décoration non essentielle).
+    ══════════════════════════════════════════════════════════ --><!--
+      VISUEL DESKTOP
+      md:flex → visible uniquement ≥768px
+      relative overflow-hidden : contexte pour les enfants positionnés en absolu
+      La hauteur est héritée de page-grid (align-items: center / min-height: 100vh)
+    --><div class="hidden md:flex relative w-full h-full min-h-[480px] items-center justify-center"><!-- ── DROP SHAPES ─────────────────────────────────────────────────
+        Formes organiques décoratives derrière les bulles.
+        Positionnement approximé depuis les maquettes.
+        Pour ajuster : modifie top/right/left/bottom et width/height en style inline.
+      ──────────────────────────────────────────────────────────────────── --><div class="drop-shape" style="width:145px; height:165px; top:6%;  right:8%;"></div><div class="drop-shape drop-shape--faint" style="width:115px; height:135px; top:18%; right:27%;"></div><div class="drop-shape drop-shape--faint" style="width:95px;  height:115px; top:52%; right:4%;"></div><div class="drop-shape" style="width:125px; height:145px; bottom:6%; right:18%; opacity:0.22;"></div><div class="drop-shape drop-shape--faint" style="width:80px;  height:100px; bottom:16%; right:38%;"></div><div class="drop-shape drop-shape--faint" style="width:65px;  height:80px;  top:38%; left:2%; opacity:0.15;"></div><!-- ── BULLES STATISTIQUES ──────────────────────────────────────────
+        .stat-bubble (global.css) : rounded-full, flex col, items-center, text-white, absolute.
+        Dimensions et positions en style inline : trop spécifiques pour Tailwind.
+
+        Pour modifier les chiffres : changer le contenu des <span>.
+        Pour modifier les tailles  : changer width/height dans style.
+        Pour modifier les positions: changer top/bottom/left/right dans style.
+      ──────────────────────────────────────────────────────────────────── --><!-- 126 Doctorants : teal principal, grande bulle, centre-gauche --><div class="stat-bubble bg-i-teal z-10" style="width:155px; height:155px; top:30%; left:6%;"><span class="text-4xl font-bold leading-none">126</span><span class="text-xs font-medium mt-1 opacity-90 tracking-wide">Doctorants</span></div><!-- 12 Universités : navy, bulle la plus grande, haut-droit --><div class="stat-bubble bg-i-navy z-10" style="width:180px; height:180px; top:14%; right:10%;"><span class="text-5xl font-bold leading-none">12</span><span class="text-xs font-medium mt-1 opacity-90 tracking-wide">Universités</span></div><!-- 3 Cohortes : lime, petite bulle, bas-centre --><div class="stat-bubble bg-i-lime z-10" style="width:125px; height:125px; bottom:18%; left:28%;"><span class="text-4xl font-bold leading-none">3</span><span class="text-xs font-medium mt-1 opacity-90 tracking-wide">Cohortes</span></div></div><!--
+      VISUEL MOBILE
+      md:hidden → visible uniquement <768px
+      Les 3 bulles passent en grille flex : 2 colonnes, 3e centrée en dessous.
+      Les drop shapes sont absentes : décoration non essentielle sur petit écran.
+    --><div class="flex md:hidden flex-wrap justify-center items-center gap-6 py-8"><!-- Rangée 1 : 126 et 12 côte à côte --><div class="flex items-center gap-4"><div class="rounded-full bg-i-teal flex flex-col items-center justify-center text-white" style="width:120px; height:120px;"><span class="text-3xl font-bold leading-none">126</span><span class="text-xs font-medium mt-1 opacity-90">Doctorants</span></div><div class="rounded-full bg-i-navy flex flex-col items-center justify-center text-white" style="width:138px; height:138px;"><span class="text-4xl font-bold leading-none">12</span><span class="text-xs font-medium mt-1 opacity-90">Universités</span></div></div><!-- Rangée 2 : 3 seul, centré --><div class="flex justify-center w-full"><div class="rounded-full bg-i-lime flex flex-col items-center justify-center text-white" style="width:100px; height:100px;"><span class="text-3xl font-bold leading-none">3</span><span class="text-xs font-medium mt-1 opacity-90">Cohortes</span></div></div></div></div></main></body></html>
